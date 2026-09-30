@@ -89,10 +89,10 @@ section { padding-block: clamp(64px, 9vw, 120px); }
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
 .brand b { font-family: var(--font-display); font-stretch: 125%; letter-spacing: .14em; font-size: 16px; }
 .nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 15px; }
-.nav-links a { text-decoration: none; color: var(--night-muted); }
+.nav-links a { text-decoration: none; color: var(--night-muted); white-space: nowrap; }
 .nav-links a:hover { color: var(--night-text); }
 .nav .btn { padding: 9px 16px; font-size: 14px; }
-@media (max-width: 1060px) { .nav-links { display: none; } .nav .btn { margin-left: auto; } }
+@media (max-width: 1260px) { .nav-links { display: none; } .nav .btn { margin-left: auto; } }
 @media (max-width: 480px) { .nav .wrap { gap: 10px; flex-wrap: nowrap; } .brand b { font-size: 14px; letter-spacing: .1em; } .nav .btn { padding: 8px 12px; font-size: 13px; white-space: nowrap; } .nav .btn .arrow { display: none; } }
 
 /* hero (a command-centre band) */
@@ -254,6 +254,29 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- pricing ---------- */
+.plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+.plan { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 28px 26px; display: grid; gap: 18px; align-content: start; position: relative; }
+.plan.featured { background: var(--night); color: var(--night-text); border-color: var(--gold-bright); box-shadow: 0 18px 48px rgba(11,14,18,.18); }
+.plan .ribbon { position: absolute; top: -12px; left: 26px; background: var(--gold-bright); color: var(--on-gold); font: 600 11.5px/1 var(--font-mono); letter-spacing: .08em; padding: 7px 10px; border-radius: 999px; }
+.plan h3 { font-size: 22px; }
+.plan .for { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
+@media (min-width: 961px) { .plan .for { min-height: 4.5em; } }
+.plan.featured .for, .plan.featured .per, .plan.featured .stores { color: var(--night-muted); }
+.plan .price { font-family: var(--font-display); font-size: clamp(34px, 3.6vw, 44px); font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+.plan .price small { font-family: var(--font-body); font-size: 15px; font-weight: 600; letter-spacing: 0; margin-right: 6px; vertical-align: .9em; }
+.plan .per { color: var(--muted); font-size: 14px; margin-top: 6px; }
+.plan .stores { font: 600 12.5px/1.3 var(--font-mono); letter-spacing: .04em; color: var(--gold); padding: 10px 0; border-block: 1px solid var(--line); }
+.plan.featured .stores { border-color: var(--night-line); color: var(--gold-bright); }
+.plan ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 15px; }
+.plan li { display: grid; grid-template-columns: 18px 1fr; gap: 10px; }
+.plan li::before { content: "✓"; color: var(--gold); font-weight: 700; }
+.plan.featured li::before { color: var(--gold-bright); }
+.plan li.lead { font-weight: 600; grid-template-columns: 1fr; }
+.plan li.lead::before { content: none; }
+.plans-note { margin-top: 28px; color: var(--muted); font-size: 14.5px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; align-items: center; }
+@media (max-width: 960px) { .plans { grid-template-columns: 1fr; max-width: 560px; } }
 </style>
 </head>
 <body>
@@ -266,6 +289,7 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
       <a href="#truth">Governance</a>
       <a href="#tax">Tax &amp; KRA</a>
       <a href="#autonomy">Autonomous</a>
+      <a href="#pricing">Pricing</a>
       <a href="#connects">Integrations</a>
       <a href="#protects">What it protects</a>
     </nav>
@@ -610,6 +634,65 @@ prev  41b7d2…0c9d   sha-256</span></pre>
         <div><h3>It gets sharper</h3><p>OJO Sentinel learns from every alert you confirm or dismiss, and from the normal patterns of each business it protects.</p></div>
         <div><h3>It respects your people</h3><p>Staff locations are tracked only during working hours and with consent on file. Face data is stored as templates, never photos. It judges what people do, not what their faces supposedly reveal: no emotion or lie detection.</p></div>
       </div>
+    </div>
+  </section>
+
+  <section id="pricing" aria-labelledby="pricing-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Pricing</p>
+        <h2 id="pricing-title">One monthly subscription. Pick how far it watches.</h2>
+        <p class="lede">Every plan gives you, the owner, alerts no manager can close, the live incident feed and the tamper-proof record. Move up a plan when you add branches or want more of the business covered.</p>
+      </div>
+      <div class="plans">
+        <article class="plan" aria-labelledby="plan-basic">
+          <div><h3 id="plan-basic">Basic</h3><p class="for">For a single shop that wants to stop losses on the premises.</p></div>
+          <div><div class="price"><small>KES</small>10,000</div><p class="per">per month</p></div>
+          <div class="stores">1 STORE</div>
+          <ul>
+            <li>Smart CCTV brain on the cameras you already have: faces, restricted areas, weapons, automatic lockdown</li>
+            <li>Day and night security modes</li>
+            <li>Stock ledger with automated counts, checked against what the storekeeper reports</li>
+            <li>Till, refund, cash-drawer and payout monitoring</li>
+            <li>Owner-direct alerts and the live incident feed</li>
+            <li>Tamper-proof audit record</li>
+            <li>Owner dashboard and Android app</li>
+            <li>Email support</li>
+          </ul>
+        </article>
+        <article class="plan featured" aria-labelledby="plan-standard">
+          <span class="ribbon">MOST POPULAR</span>
+          <div><h3 id="plan-standard">Standard</h3><p class="for">For growing businesses with branches, deliveries and KRA filings to keep on top of.</p></div>
+          <div><div class="price"><small>KES</small>30,000</div><p class="per">per month</p></div>
+          <div class="stores">UP TO 5 STORES</div>
+          <ul>
+            <li class="lead">Everything in Basic, plus:</li>
+            <li>Goods in transit, with seal and weight checks at every checkpoint</li>
+            <li>GPS and satellite tracking of trucks, cargo and staff</li>
+            <li>Fake-email and hacker detection, with honeypot traps</li>
+            <li>Behavioural AI that learns from every alert you confirm or dismiss</li>
+            <li>Tax &amp; Finance: eTIMS invoicing, VAT, PAYE, SHIF, NSSF, licences and accounts</li>
+            <li>Stock expiry control</li>
+            <li>Email and phone support</li>
+          </ul>
+        </article>
+        <article class="plan" aria-labelledby="plan-premium">
+          <div><h3 id="plan-premium">Premium</h3><p class="for">For multi-branch operations that want the business to run itself.</p></div>
+          <div><div class="price"><small>KES</small>50,000</div><p class="per">per month</p></div>
+          <div class="stores">UNLIMITED STORES</div>
+          <ul>
+            <li class="lead">Everything in Standard, plus:</li>
+            <li>Autonomous store day: opening and closing times, alarm arming, shift reports</li>
+            <li>Face-verified sign-ins and doors</li>
+            <li>Power, internet and device monitoring</li>
+            <li>Automatic calls on route breaches, one-tap security dispatch, backup escalation</li>
+            <li>Silent Witness and blind-spot tracking</li>
+            <li>Cross-branch patterns and the shrinkage forecast</li>
+            <li>Priority support with a named account manager</li>
+          </ul>
+        </article>
+      </div>
+      <div class="plans-note"><span>Prices in Kenyan shillings, billed monthly per business. Cameras, sensors and trackers are not included.</span><a class="btn btn-gold" href="demo/">See every feature in the demo <span class="arrow">→</span></a></div>
     </div>
   </section>
 
