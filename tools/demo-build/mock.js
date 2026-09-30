@@ -36,6 +36,9 @@
       learning: owner["/api/ai/learning"],
     };
     S.lastHash = (S.audit[0] && S.audit[0].hash) || "0".repeat(64);
+    S.sub = clone(FX.baseline.owner["/api/subscription"]);
+    S.sub.mpesa_mode = "demo";
+    S.payments = [];
   }
   reset();
   window.DEMO_RESET = () => { reset(); emit({ topic: "demo.reset", data: {} }); };
@@ -484,6 +487,14 @@
       await audit(u.username, "honeypot.token_created", t.label, { kind: t.kind });
       return { ...t, canary_url: ["url", "document"].includes(t.kind) ? `${location.origin}/t/${t.token}` : undefined };
     }
+    if (path === "/api/subscription") {
+      const v = clone(S.sub);
+      if (!admin) { delete v.payments; v.mpesa_mode = null; } else v.payments = S.payments.slice(0, 10).map(clone);
+      return v;
+    }
+    if (path === "/api/billing/mpesa/pay" && method === "POST") { need("owner", "ojo_management"); return await mpesaPay(u, body); }
+    m = /^\/api\/billing\/mpesa\/payments\/(\d+)$/.exec(path);
+    if (m) { need("owner", "ojo_management"); return await mpesaCheck(+m[1]); }
     m = /^\/api\/alerts\/(\d+)\/dispatch$/.exec(path);
     if (m && method === "POST") { need("owner", "ojo_management", "manager", "security"); return await dispatch(u, +m[1], body.note || ""); }
     if (path === "/api/expiry/dispose" && method === "POST") { need("owner", "ojo_management", "manager", "storekeeper", "security"); return await dispose(u, body); }
@@ -581,6 +592,53 @@
     }
     await audit(u.username, "sales.reported", `NBO-01/${b.sku}`, { reported: +b.reported_units, system: units });
     return { flagged, system_units: units, reported_units: +b.reported_units };
+  }
+
+  // ------------------------------------------------------------------ M-Pesa (same rules as ojo_sentinel/billing)
+
+  function msisdn(raw) {
+    let d = String(raw || "").replace(/\D/g, "");
+    if (d.startsWith("0") && d.length === 10) d = "254" + d.slice(1);
+    else if (d.length === 9 && /^[71]/.test(d)) d = "254" + d;
+    if (!/^254[71]\d{8}$/.test(d)) throw httpError(422, "Enter a Safaricom number, for example 0712 345 678.");
+    return d;
+  }
+  async function mpesaPay(u, b) {
+    const plan = S.sub.plans.find((p) => p.key === b.plan);
+    if (!plan) throw httpError(422, `unknown plan '${b.plan}'`);
+    const phone = msisdn(b.phone);
+    if (plan.max_stores && S.sub.stores_used > plan.max_stores) throw httpError(409, `You have ${S.sub.stores_used} stores and ${plan.name} covers ${plan.max_stores}. Choose a larger plan.`);
+    if (S.payments.some((p) => p.status === "pending" && p._phone === phone)) throw httpError(409, "A payment request is already waiting on that phone. Approve or cancel it first.");
+    const p = { id: ++S.nextId, plan: plan.key, plan_name: plan.name, amount: plan.price_kes, phone: phone.slice(0, 6) + "***" + phone.slice(-3), _phone: phone,
+      status: "pending", receipt: null, result_desc: "", confirmed_by: "", requested_by: u.username, created_at: DEMO.iso(), completed_at: null, _at: Date.now() };
+    S.payments.unshift(p);
+    await audit(u.username, "billing.mpesa_requested", `payment:${p.id}`, { plan: plan.key, amount: plan.price_kes, phone: p.phone, mode: "demo" });
+    return { ...clone(p), message: "Check your phone and enter your M-Pesa PIN to approve the payment." };
+  }
+  async function mpesaCheck(id) {
+    const p = S.payments.find((x) => x.id === id);
+    if (!p) throw httpError(404, "payment not found");
+    if (p.status === "pending" && Date.now() - p._at > 4500) {
+      p.completed_at = DEMO.iso(); p.confirmed_by = "callback";
+      if (p._phone === "254700000001") Object.assign(p, { status: "failed", result_desc: "Request cancelled by user" });
+      else if (p._phone === "254700000002") Object.assign(p, { status: "failed", result_desc: "The balance is insufficient for the transaction" });
+      else {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789";
+        p.status = "paid"; p.result_desc = "The service request is processed successfully.";
+        p.receipt = "S" + Array.from({ length: 9 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+        const plan = S.sub.plans.find((x) => x.key === p.plan);
+        const same = S.sub.paid_plan === p.plan && S.sub.status === "active" && S.sub.paid_until;
+        const until = (same ? Date.parse(S.sub.paid_until) : DEMO.now()) + 30 * 86400000;
+        Object.assign(S.sub, { plan: clone(plan), paid_plan: plan.key, status: "active", paid_until: new Date(until).toISOString(),
+          grace_until: new Date(until + 7 * 86400000).toISOString(), days_left: Math.ceil((until - DEMO.now()) / 86400000) });
+        addAlert({ rule: "billing_paid", pillar: "finance", severity: "info", title: `${plan.name} plan paid: KES ${plan.price_kes.toLocaleString("en-US")} by M-Pesa`,
+          detail: `Receipt ${p.receipt}. Paid up to ${new Date(until).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}.`,
+          store_id: null, subject: p.phone, owner_direct: true, audience: ["owner", "ojo_management"], confidence: 1, mode: "day",
+          live_feed_url: null, evidence: { payment_id: p.id, receipt: p.receipt }, created_at: 1, updated_at: 1 });
+      }
+      await audit("mpesa", `billing.mpesa_${p.status}`, `payment:${p.id}`, { receipt: p.receipt, via: "callback" });
+    }
+    return clone(p);
   }
 
   // ------------------------------------------------------------------ autonomous actions

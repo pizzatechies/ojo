@@ -277,6 +277,11 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
 .plan li.lead::before { content: none; }
 .plans-note { margin-top: 28px; color: var(--muted); font-size: 14.5px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; align-items: center; }
 @media (max-width: 960px) { .plans { grid-template-columns: 1fr; max-width: 560px; } }
+
+.currency-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: -20px 0 28px; font-size: 14.5px; color: var(--muted); }
+.currency-pick select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; max-width: 100%; }
+.plan .billed { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+.plan.featured .billed { color: var(--night-muted); }
 </style>
 </head>
 <body>
@@ -308,7 +313,7 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
           <a class="btn btn-gold" href="demo/">Try the live demo <span class="arrow">→</span></a>
           <a class="btn btn-line" href="#capabilities">See what it watches</a>
         </div>
-        <p class="hero-note">The demo runs in your browser. No sign-up needed. On Android? <a href="downloads/ojo-sentinel.apk" download style="color:var(--gold-bright)">Get the app</a> (APK, 316 KB).</p>
+        <p class="hero-note">The demo runs in your browser. No sign-up needed. On Android? <a href="downloads/ojo-sentinel.apk" download style="color:var(--gold-bright)">Get the app</a> (APK, 320 KB).</p>
       </div>
 
       <div class="console" aria-label="Example of the live incident feed the owner sees">
@@ -644,10 +649,13 @@ prev  41b7d2…0c9d   sha-256</span></pre>
         <h2 id="pricing-title">One monthly subscription. Pick how far it watches.</h2>
         <p class="lede">Every plan gives you, the owner, alerts no manager can close, the live incident feed and the tamper-proof record. Move up a plan when you add branches or want more of the business covered.</p>
       </div>
+      <div class="currency-pick"><label for="currency">Show prices in</label>
+        <select id="currency"><option value="KES">Kenyan shilling (KES)</option></select>
+        <span id="fx-note"></span></div>
       <div class="plans">
         <article class="plan" aria-labelledby="plan-basic">
           <div><h3 id="plan-basic">Basic</h3><p class="for">For a single shop that wants to stop losses on the premises.</p></div>
-          <div><div class="price"><small>KES</small>10,000</div><p class="per">per month</p></div>
+          <div data-kes="10000"><div class="price"><small>KES</small>10,000</div><p class="per">per month</p></div>
           <div class="stores">1 STORE</div>
           <ul>
             <li>Smart CCTV brain on the cameras you already have: faces, restricted areas, weapons, automatic lockdown</li>
@@ -663,7 +671,7 @@ prev  41b7d2…0c9d   sha-256</span></pre>
         <article class="plan featured" aria-labelledby="plan-standard">
           <span class="ribbon">MOST POPULAR</span>
           <div><h3 id="plan-standard">Standard</h3><p class="for">For growing businesses with branches, deliveries and KRA filings to keep on top of.</p></div>
-          <div><div class="price"><small>KES</small>30,000</div><p class="per">per month</p></div>
+          <div data-kes="30000"><div class="price"><small>KES</small>30,000</div><p class="per">per month</p></div>
           <div class="stores">UP TO 5 STORES</div>
           <ul>
             <li class="lead">Everything in Basic, plus:</li>
@@ -678,7 +686,7 @@ prev  41b7d2…0c9d   sha-256</span></pre>
         </article>
         <article class="plan" aria-labelledby="plan-premium">
           <div><h3 id="plan-premium">Premium</h3><p class="for">For multi-branch operations that want the business to run itself.</p></div>
-          <div><div class="price"><small>KES</small>50,000</div><p class="per">per month</p></div>
+          <div data-kes="50000"><div class="price"><small>KES</small>50,000</div><p class="per">per month</p></div>
           <div class="stores">UNLIMITED STORES</div>
           <ul>
             <li class="lead">Everything in Standard, plus:</li>
@@ -692,7 +700,7 @@ prev  41b7d2…0c9d   sha-256</span></pre>
           </ul>
         </article>
       </div>
-      <div class="plans-note"><span>Prices in Kenyan shillings, billed monthly per business. Cameras, sensors and trackers are not included.</span><a class="btn btn-gold" href="demo/">See every feature in the demo <span class="arrow">→</span></a></div>
+      <div class="plans-note"><span>Billed monthly per business in Kenyan shillings, paid by M-Pesa from your dashboard. Other currencies are shown at the day's exchange rate as a guide. Cameras, sensors and trackers are not included.</span><a class="btn btn-gold" href="demo/">See every feature in the demo <span class="arrow">→</span></a></div>
     </div>
   </section>
 
@@ -784,6 +792,72 @@ prev  41b7d2…0c9d   sha-256</span></pre>
     feed.prepend(li);
     while (feed.children.length > 6) feed.lastElementChild.remove();
   }, 3200);
+})();
+</script>
+<script>
+/* Pricing in the visitor's currency. Subscriptions are billed in KES by M-Pesa; other currencies are a guide. */
+(() => {
+  const FX = {"date":"2026-09-30","rates":{"AED":0.0283076,"AOA":7.08067303,"AUD":0.01105478,"BIF":23.1095907,"BWP":0.10529727,"CAD":0.01094373,"CDF":17.81701189,"CHF":0.00643324,"CNY":0.05168389,"DJF":1.3725107,"DZD":1.03175893,"EGP":0.40158267,"ETB":1.25354497,"EUR":0.00680179,"GBP":0.00582713,"GHS":0.08999197,"GMD":0.57198646,"GNF":67.81550787,"INR":0.73970076,"JPY":1.21120725,"KES":1.0,"LRD":1.32113577,"LSL":0.12635879,"MAD":0.07465767,"MGA":33.97823749,"MUR":0.36838181,"MWK":13.38020497,"MZN":0.49232686,"NAD":0.12635879,"NGN":10.2375784,"QAR":0.02805709,"RWF":11.36878672,"SAR":0.02890497,"SCR":0.11237641,"SDG":4.62573333,"SLE":0.18989959,"SOS":4.40302247,"SSP":44.03261707,"SZL":0.12635879,"TND":0.0229154,"TZS":20.36426004,"UGX":30.21237113,"USD":0.00770799,"XAF":4.4616831,"XOF":4.4616831,"ZAR":0.12635879,"ZMW":0.1511604},"names":{"AED":"UAE dirham","AOA":"Angolan kwanza","AUD":"Australian dollar","BIF":"Burundian franc","BWP":"Botswana pula","CAD":"Canadian dollar","CDF":"Congolese franc","CHF":"Swiss franc","CNY":"Chinese yuan","DJF":"Djiboutian franc","DZD":"Algerian dinar","EGP":"Egyptian pound","ETB":"Ethiopian birr","EUR":"Euro","GBP":"British pound","GHS":"Ghanaian cedi","GMD":"Gambian dalasi","GNF":"Guinean franc","INR":"Indian rupee","JPY":"Japanese yen","KES":"Kenyan shilling","LRD":"Liberian dollar","LSL":"Lesotho loti","MAD":"Moroccan dirham","MGA":"Malagasy ariary","MUR":"Mauritian rupee","MWK":"Malawian kwacha","MZN":"Mozambican metical","NAD":"Namibian dollar","NGN":"Nigerian naira","QAR":"Qatari riyal","RWF":"Rwandan franc","SAR":"Saudi riyal","SCR":"Seychellois rupee","SDG":"Sudanese pound","SLE":"Sierra Leonean leone","SOS":"Somali shilling","SSP":"South Sudanese pound","SZL":"Eswatini lilangeni","TND":"Tunisian dinar","TZS":"Tanzanian shilling","UGX":"Ugandan shilling","USD":"US dollar","XAF":"Central African CFA franc","XOF":"West African CFA franc","ZAR":"South African rand","ZMW":"Zambian kwacha"},"countries":{"KE":"KES","UG":"UGX","TZ":"TZS","RW":"RWF","BI":"BIF","ET":"ETB","SS":"SSP","SO":"SOS","DJ":"DJF","CD":"CDF","NG":"NGN","GH":"GHS","SN":"XOF","CI":"XOF","BJ":"XOF","BF":"XOF","ML":"XOF","NE":"XOF","TG":"XOF","GW":"XOF","CM":"XAF","GA":"XAF","CG":"XAF","TD":"XAF","CF":"XAF","GQ":"XAF","LR":"LRD","SL":"SLE","GM":"GMD","GN":"GNF","ZA":"ZAR","NA":"NAD","BW":"BWP","LS":"LSL","SZ":"SZL","ZM":"ZMW","ZW":"USD","MW":"MWK","MZ":"MZN","AO":"AOA","MG":"MGA","MU":"MUR","SC":"SCR","EG":"EGP","MA":"MAD","DZ":"DZD","TN":"TND","SD":"SDG","US":"USD","GB":"GBP","DE":"EUR","FR":"EUR","IT":"EUR","ES":"EUR","NL":"EUR","BE":"EUR","IE":"EUR","PT":"EUR","AT":"EUR","FI":"EUR","GR":"EUR","CH":"CHF","AE":"AED","SA":"SAR","QA":"QAR","IN":"INR","CN":"CNY","JP":"JPY","CA":"CAD","AU":"AUD"}};
+  const TZ = { Nairobi: "KE", Kampala: "UG", Dar_es_Salaam: "TZ", Kigali: "RW", Bujumbura: "BI", Addis_Ababa: "ET", Juba: "SS",
+    Mogadishu: "SO", Djibouti: "DJ", Kinshasa: "CD", Lubumbashi: "CD", Lagos: "NG", Accra: "GH", Dakar: "SN", Abidjan: "CI",
+    "Porto-Novo": "BJ", Ouagadougou: "BF", Bamako: "ML", Niamey: "NE", Lome: "TG", Bissau: "GW", Douala: "CM", Libreville: "GA",
+    Brazzaville: "CG", Ndjamena: "TD", Bangui: "CF", Malabo: "GQ", Monrovia: "LR", Freetown: "SL", Banjul: "GM", Conakry: "GN",
+    Johannesburg: "ZA", Windhoek: "NA", Gaborone: "BW", Maseru: "LS", Mbabane: "SZ", Lusaka: "ZM", Harare: "ZW", Blantyre: "MW",
+    Maputo: "MZ", Luanda: "AO", Antananarivo: "MG", Mauritius: "MU", Mahe: "SC", Cairo: "EG", Casablanca: "MA", Algiers: "DZ",
+    Tunis: "TN", Khartoum: "SD", London: "GB", Dubai: "AE", Riyadh: "SA", Qatar: "QA", Kolkata: "IN", Calcutta: "IN",
+    Shanghai: "CN", Tokyo: "JP", Zurich: "CH", Berlin: "DE", Paris: "FR", Rome: "IT", Madrid: "ES", Amsterdam: "NL",
+    Brussels: "BE", Dublin: "IE", Lisbon: "PT", Vienna: "AT", Helsinki: "FI", Athens: "GR", Toronto: "CA", Vancouver: "CA",
+    Sydney: "AU", Melbourne: "AU", New_York: "US", Chicago: "US", Denver: "US", Los_Angeles: "US" };
+  const sel = document.getElementById("currency"), note = document.getElementById("fx-note");
+  if (!sel) return;
+  let source = "snapshot";
+  // Round to three significant figures, but never below whole units: "UGX 906,000", "USD 231", "EUR 68".
+  const nice = (v) => (v >= 1000 ? Number(v.toPrecision(3)) : Math.round(v));
+  const nf = (code, v) => { try { return new Intl.NumberFormat(undefined, { style: "currency", currency: code, currencyDisplay: "code", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(nice(v)); } catch (_) { return code + " " + nice(v).toLocaleString(); } };
+  function detect() {
+    try { const s = localStorage.getItem("ojo-currency"); if (s && FX.rates[s]) return s; } catch (_) {}
+    let c = "";
+    try { c = TZ[(Intl.DateTimeFormat().resolvedOptions().timeZone || "").split("/").pop()] || ""; } catch (_) {}
+    let region = "";
+    for (const l of navigator.languages || [navigator.language || ""]) { const m = /-([A-Z]{2})$/i.exec(l); if (m) { region = region || m[1].toUpperCase(); if (!c && FX.countries[m[1].toUpperCase()]) c = m[1].toUpperCase(); } }
+    if (c && FX.countries[c] && FX.rates[FX.countries[c]]) return FX.countries[c];
+    return region ? "USD" : "KES";  // somewhere we don't list: dollars are the most useful guide
+  }
+  function fill() {
+    const codes = Object.keys(FX.rates).sort((a, b) => a === "KES" ? -1 : b === "KES" ? 1 : (FX.names[a] || a).localeCompare(FX.names[b] || b));
+    const cur = sel.value || detect();
+    sel.innerHTML = codes.map((c) => `<option value="${c}"${c === cur ? " selected" : ""}>${FX.names[c] || c} (${c})</option>`).join("");
+  }
+  function render() {
+    const code = sel.value;
+    document.querySelectorAll("[data-kes]").forEach((el) => {
+      const kes = +el.dataset.kes;
+      if (code === "KES") {
+        el.innerHTML = `<div class="price"><small>KES</small>${kes.toLocaleString("en-US")}</div><p class="per">per month</p>`;
+      } else {
+        const parts = nf(code, kes * FX.rates[code]).replace(code, "").trim();
+        el.innerHTML = `<div class="price"><small>≈ ${code}</small>${parts}</div><p class="per">per month</p><p class="billed">Billed as KES ${kes.toLocaleString("en-US")} by M-Pesa</p>`;
+      }
+    });
+    note.textContent = code === "KES" ? "" : `Rates from ${FX.date}${source === "live" ? "" : " (latest saved)"}.`;
+  }
+  sel.value = detect(); fill(); render();
+  sel.addEventListener("change", () => { try { localStorage.setItem("ojo-currency", sel.value); } catch (_) {} render(); });
+  // Refresh with today's rates when the feed is reachable; the saved rates above are the fallback.
+  const feeds = ["https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/kes.min.json",
+                 "https://latest.currency-api.pages.dev/v1/currencies/kes.min.json"];
+  (async () => {
+    for (const url of feeds) {
+      try {
+        const r = await fetch(url, { cache: "no-cache" });
+        if (!r.ok) continue;
+        const d = await r.json();
+        let n = 0;
+        for (const c of Object.keys(FX.rates)) { const v = d.kes && d.kes[c.toLowerCase()]; if (c !== "KES" && v > 0) { FX.rates[c] = v; n++; } }
+        if (n > 10) { FX.date = d.date || FX.date; source = "live"; render(); return; }
+      } catch (_) { /* try the next feed */ }
+    }
+  })();
 })();
 </script>
 </body>

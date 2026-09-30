@@ -111,11 +111,11 @@ OWNER_EP = ["/api/dashboard", "/api/stores", "/api/alerts?limit=500", "/api/inve
             "/api/products", "/api/finance/overview", "/api/finance/vat-return", "/api/finance/payroll",
             "/api/finance/accounting/branches", "/api/finance/accounting/margins", "/api/finance/accounting/ap-ar",
             "/api/finance/accounting/expenses", "/api/autonomy/overview", "/api/autonomy/report-vs-reality",
-            "/api/autonomy/shrinkage", "/api/expiry", "/api/subscription"]
+            "/api/autonomy/shrinkage", "/api/expiry", "/api/subscription", "/api/currency"]
 MGR_EP = ["/api/dashboard", "/api/stores", "/api/inventory/counts?flagged=true&limit=30", "/api/shipments",
           "/api/attendance", "/api/employees", "/api/cameras", "/api/detections?limit=40", "/api/modes",
           "/api/money/summary", "/api/map", "/api/products", "/api/autonomy/overview",
-          "/api/autonomy/report-vs-reality", "/api/expiry", "/api/subscription"]
+          "/api/autonomy/report-vs-reality", "/api/expiry", "/api/subscription", "/api/currency"]
 
 def snapshot():
     st = stores()

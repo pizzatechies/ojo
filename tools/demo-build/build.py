@@ -108,6 +108,7 @@ main { padding-bottom: 96px; }
   body.demo-open main { padding-right: calc(330px + 32px); }
   body.demo-open .topbar { padding-right: calc(330px + 32px); }
   .demo-panel { top: calc(76px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 100px); }
+  .demo-panel[data-collapsed="true"] { top: auto; }
 }
 /* ask dialog */
 .ask-card { width: min(460px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 10px; }
@@ -147,6 +148,14 @@ swap('''    $("#app").hidden = true; $("#login").hidden = false;
   }''')
 swap('''    $("#who").textContent''', '''    document.dispatchEvent(new CustomEvent("demo:session", { detail: state.user }));
     $("#who").textContent''')
+
+# A paid plan change re-applies in place: reloading would reset the demo.
+swap("      setTimeout(() => location.reload(), 1800);", "      setTimeout(() => window.DEMO_LOGIN(state.user.username), 1800);")
+swap("${esc(p.plan_name)} is active.</b> M-Pesa receipt ${esc(p.receipt || \"to follow\")}. Reloading…",
+     "${esc(p.plan_name)} is active.</b> M-Pesa receipt ${esc(p.receipt || \"to follow\")}.")
+swap('<p class="small"><span class="badge">test mode</span> M-Pesa isn\'t connected yet, so payments are simulated and no money moves.</p>',
+     '<p class="small"><span class="badge">demo</span> Payments here are simulated and no money moves. Any Safaricom number works; 0700 000 001 rehearses a cancelled prompt.</p>')
+swap('sub.mpesa_mode === "simulated"', 'sub.mpesa_mode === "demo"')
 
 # In-page replacement for prompt(), which the artifact viewer blocks.
 swap('''  function ask(label, value = "") {
