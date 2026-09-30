@@ -282,6 +282,10 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
 .currency-pick select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; max-width: 100%; }
 .plan .billed { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
 .plan.featured .billed { color: var(--night-muted); }
+
+.cycle-toggle { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin-right: 8px; }
+.cycle-toggle button { font: inherit; font-size: 14px; font-weight: 600; border: 0; background: transparent; color: var(--muted); padding: 7px 14px; border-radius: 999px; cursor: pointer; }
+.cycle-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 </style>
 </head>
 <body>
@@ -313,7 +317,7 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
           <a class="btn btn-gold" href="demo/">Try the live demo <span class="arrow">→</span></a>
           <a class="btn btn-line" href="#capabilities">See what it watches</a>
         </div>
-        <p class="hero-note">The demo runs in your browser. No sign-up needed. On Android? <a href="downloads/ojo-sentinel.apk" download style="color:var(--gold-bright)">Get the app</a> (APK, 320 KB).</p>
+        <p class="hero-note">The demo runs in your browser. No sign-up needed.</p>
       </div>
 
       <div class="console" aria-label="Example of the live incident feed the owner sees">
@@ -646,16 +650,19 @@ prev  41b7d2…0c9d   sha-256</span></pre>
     <div class="wrap">
       <div class="section-head">
         <p class="eyebrow">Pricing</p>
-        <h2 id="pricing-title">One monthly subscription. Pick how far it watches.</h2>
+        <h2 id="pricing-title">One subscription. Pick how far it watches.</h2>
         <p class="lede">Every plan gives you, the owner, alerts no manager can close, the live incident feed and the tamper-proof record. Move up a plan when you add branches or want more of the business covered.</p>
       </div>
-      <div class="currency-pick"><label for="currency">Show prices in</label>
+      <div class="currency-pick"><div class="cycle-toggle" role="group" aria-label="Billing cycle">
+          <button type="button" data-cycle="monthly" aria-pressed="true">Monthly</button>
+          <button type="button" data-cycle="yearly" aria-pressed="false">Yearly · 2 months free</button></div>
+        <label for="currency">Show prices in</label>
         <select id="currency"><option value="KES">Kenyan shilling (KES)</option></select>
         <span id="fx-note"></span></div>
       <div class="plans">
         <article class="plan" aria-labelledby="plan-basic">
           <div><h3 id="plan-basic">Basic</h3><p class="for">For a single shop that wants to stop losses on the premises.</p></div>
-          <div data-kes="10000"><div class="price"><small>KES</small>10,000</div><p class="per">per month</p></div>
+          <div data-kes="10000"><div class="price"><small>KES</small>10,000</div><p class="per">per month, by M-Pesa or card</p></div>
           <div class="stores">1 STORE</div>
           <ul>
             <li>Smart CCTV brain on the cameras you already have: faces, restricted areas, weapons, automatic lockdown</li>
@@ -671,7 +678,7 @@ prev  41b7d2…0c9d   sha-256</span></pre>
         <article class="plan featured" aria-labelledby="plan-standard">
           <span class="ribbon">MOST POPULAR</span>
           <div><h3 id="plan-standard">Standard</h3><p class="for">For growing businesses with branches, deliveries and KRA filings to keep on top of.</p></div>
-          <div data-kes="30000"><div class="price"><small>KES</small>30,000</div><p class="per">per month</p></div>
+          <div data-kes="30000"><div class="price"><small>KES</small>30,000</div><p class="per">per month, by M-Pesa or card</p></div>
           <div class="stores">UP TO 5 STORES</div>
           <ul>
             <li class="lead">Everything in Basic, plus:</li>
@@ -686,7 +693,7 @@ prev  41b7d2…0c9d   sha-256</span></pre>
         </article>
         <article class="plan" aria-labelledby="plan-premium">
           <div><h3 id="plan-premium">Premium</h3><p class="for">For multi-branch operations that want the business to run itself.</p></div>
-          <div data-kes="50000"><div class="price"><small>KES</small>50,000</div><p class="per">per month</p></div>
+          <div data-kes="50000"><div class="price"><small>KES</small>50,000</div><p class="per">per month, by M-Pesa or card</p></div>
           <div class="stores">UNLIMITED STORES</div>
           <ul>
             <li class="lead">Everything in Standard, plus:</li>
@@ -700,7 +707,7 @@ prev  41b7d2…0c9d   sha-256</span></pre>
           </ul>
         </article>
       </div>
-      <div class="plans-note"><span>Billed monthly per business in Kenyan shillings, paid by M-Pesa from your dashboard. Other currencies are shown at the day's exchange rate as a guide. Cameras, sensors and trackers are not included.</span><a class="btn btn-gold" href="demo/">See every feature in the demo <span class="arrow">→</span></a></div>
+      <div class="plans-note"><span>Billed per business in Kenyan shillings, monthly or yearly, paid by M-Pesa or card (Visa, Mastercard) from your dashboard. A single M-Pesa payment is limited to KES 250,000, so yearly Standard and Premium are paid by card. Other currencies are shown at the day's exchange rate as a guide. Cameras, sensors and trackers are not included.</span><a class="btn btn-gold" href="demo/">See every feature in the demo <span class="arrow">→</span></a></div>
     </div>
   </section>
 
@@ -709,9 +716,7 @@ prev  41b7d2…0c9d   sha-256</span></pre>
       <div>
         <h2 id="final-title">See it for yourself.</h2>
         <p class="lede">Step into the owner's command centre. Set off a weapon alert, a tampered delivery or a storekeeper hiding a loss, then switch to a manager and try to make it go away.</p>
-        <div class="hero-cta"><a class="btn btn-gold" href="demo/">Open the live demo <span class="arrow">→</span></a>
-          <a class="btn btn-line" href="downloads/ojo-sentinel.apk" download>Download for Android</a></div>
-        <p class="hero-note">The Android app includes the demo, which works offline, and connects to your own OJO Sentinel server. Android 6 or later. Your phone will ask you to allow installs from your browser, because the app is installed directly rather than from Google Play.</p>
+        <div class="hero-cta"><a class="btn btn-gold" href="demo/">Open the live demo <span class="arrow">→</span></a></div>
       </div>
       <ul aria-label="In the demo">
         <li>Four stores in Nairobi, Mombasa, Kampala and Lagos</li>
@@ -828,21 +833,36 @@ prev  41b7d2…0c9d   sha-256</span></pre>
     const cur = sel.value || detect();
     sel.innerHTML = codes.map((c) => `<option value="${c}"${c === cur ? " selected" : ""}>${FX.names[c] || c} (${c})</option>`).join("");
   }
+  const YEARLY_MONTHS = 10, MPESA_MAX = 250000;
+  let cycle = "monthly";
+  try { cycle = localStorage.getItem("ojo-cycle") === "yearly" ? "yearly" : "monthly"; } catch (_) {}
+  const k = (n) => n.toLocaleString("en-US");
   function render() {
     const code = sel.value;
+    const yearly = cycle === "yearly";
+    document.querySelectorAll("[data-cycle]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cycle === cycle)));
     document.querySelectorAll("[data-kes]").forEach((el) => {
-      const kes = +el.dataset.kes;
+      const monthly = +el.dataset.kes;
+      const kes = yearly ? monthly * YEARLY_MONTHS : monthly;
+      const per = yearly ? "per year" : "per month";
+      const how = kes > MPESA_MAX ? "by card" : "by M-Pesa or card";
+      const saving = yearly ? `<p class="billed">KES ${k(Math.round(kes / 12))} a month · saves KES ${k(monthly * 12 - kes)}</p>` : "";
       if (code === "KES") {
-        el.innerHTML = `<div class="price"><small>KES</small>${kes.toLocaleString("en-US")}</div><p class="per">per month</p>`;
+        el.innerHTML = `<div class="price"><small>KES</small>${k(kes)}</div><p class="per">${per}, ${how}</p>${saving}`;
       } else {
         const parts = nf(code, kes * FX.rates[code]).replace(code, "").trim();
-        el.innerHTML = `<div class="price"><small>≈ ${code}</small>${parts}</div><p class="per">per month</p><p class="billed">Billed as KES ${kes.toLocaleString("en-US")} by M-Pesa</p>`;
+        el.innerHTML = `<div class="price"><small>≈ ${code}</small>${parts}</div><p class="per">${per}</p><p class="billed">Billed as KES ${k(kes)} ${how}</p>${saving}`;
       }
     });
     note.textContent = code === "KES" ? "" : `Rates from ${FX.date}${source === "live" ? "" : " (latest saved)"}.`;
   }
   sel.value = detect(); fill(); render();
   sel.addEventListener("change", () => { try { localStorage.setItem("ojo-currency", sel.value); } catch (_) {} render(); });
+  document.querySelectorAll("[data-cycle]").forEach((b) => b.addEventListener("click", () => {
+    cycle = b.dataset.cycle;
+    try { localStorage.setItem("ojo-cycle", cycle); } catch (_) {}
+    render();
+  }));
   // Refresh with today's rates when the feed is reachable; the saved rates above are the fallback.
   const feeds = ["https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/kes.min.json",
                  "https://latest.currency-api.pages.dev/v1/currencies/kes.min.json"];

@@ -151,11 +151,8 @@ swap('''    $("#who").textContent''', '''    document.dispatchEvent(new CustomEv
 
 # A paid plan change re-applies in place: reloading would reset the demo.
 swap("      setTimeout(() => location.reload(), 1800);", "      setTimeout(() => window.DEMO_LOGIN(state.user.username), 1800);")
-swap("${esc(p.plan_name)} is active.</b> M-Pesa receipt ${esc(p.receipt || \"to follow\")}. Reloading…",
-     "${esc(p.plan_name)} is active.</b> M-Pesa receipt ${esc(p.receipt || \"to follow\")}.")
-swap('<p class="small"><span class="badge">test mode</span> M-Pesa isn\'t connected yet, so payments are simulated and no money moves.</p>',
-     '<p class="small"><span class="badge">demo</span> Payments here are simulated and no money moves. Any Safaricom number works; 0700 000 001 rehearses a cancelled prompt.</p>')
-swap('sub.mpesa_mode === "simulated"', 'sub.mpesa_mode === "demo"')
+swap('${testModes.length ? `<p class="small"><span class="badge">test mode</span> ${esc(testModes.join(" and "))} not connected yet, so payments are simulated and no money moves.</p>` : ""}',
+     '<p class="small"><span class="badge">demo</span> Payments here are simulated and no money moves. Any Safaricom number works (0700 000 001 rehearses a cancelled prompt); card 4000 0000 0000 0002 is declined.</p>')
 
 # In-page replacement for prompt(), which the artifact viewer blocks.
 swap('''  function ask(label, value = "") {

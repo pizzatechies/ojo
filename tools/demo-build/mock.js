@@ -37,7 +37,7 @@
     };
     S.lastHash = (S.audit[0] && S.audit[0].hash) || "0".repeat(64);
     S.sub = clone(FX.baseline.owner["/api/subscription"]);
-    S.sub.mpesa_mode = "demo";
+    S.sub.mpesa_mode = "simulated"; S.sub.card_mode = "simulated";
     S.payments = [];
   }
   reset();
@@ -489,11 +489,14 @@
     }
     if (path === "/api/subscription") {
       const v = clone(S.sub);
-      if (!admin) { delete v.payments; v.mpesa_mode = null; } else v.payments = S.payments.slice(0, 10).map(clone);
+      if (!admin) { delete v.payments; delete v.mpesa_mode; delete v.card_mode; } else v.payments = S.payments.slice(0, 10).map(view);
       return v;
     }
-    if (path === "/api/billing/mpesa/pay" && method === "POST") { need("owner", "ojo_management"); return await mpesaPay(u, body); }
-    m = /^\/api\/billing\/mpesa\/payments\/(\d+)$/.exec(path);
+    if (path === "/api/billing/mpesa/pay" && method === "POST") { need("owner", "ojo_management"); return await startPayment(u, "mpesa", body); }
+    if (path === "/api/billing/card/pay" && method === "POST") { need("owner", "ojo_management"); return await startPayment(u, "card", body); }
+    m = /^\/api\/billing\/card\/simulate\/(\d+)$/.exec(path);
+    if (m && method === "POST") { need("owner", "ojo_management"); return await cardSimulate(+m[1], body.card_number); }
+    m = /^\/api\/billing\/payments\/(\d+)$/.exec(path);
     if (m) { need("owner", "ojo_management"); return await mpesaCheck(+m[1]); }
     m = /^\/api\/alerts\/(\d+)\/dispatch$/.exec(path);
     if (m && method === "POST") { need("owner", "ojo_management", "manager", "security"); return await dispatch(u, +m[1], body.note || ""); }
@@ -603,42 +606,74 @@
     if (!/^254[71]\d{8}$/.test(d)) throw httpError(422, "Enter a Safaricom number, for example 0712 345 678.");
     return d;
   }
-  async function mpesaPay(u, b) {
+  const view = (p) => { const o = clone(p); for (const k of Object.keys(o)) if (k.startsWith("_")) delete o[k]; return o; };
+  const maskEmail = (e) => { const [n, d] = e.split("@"); return `${n.slice(0, 2)}***@${d}`; };
+  async function startPayment(u, method, b) {
     const plan = S.sub.plans.find((p) => p.key === b.plan);
     if (!plan) throw httpError(422, `unknown plan '${b.plan}'`);
-    const phone = msisdn(b.phone);
+    const cycle = b.cycle || "monthly";
+    if (!["monthly", "yearly"].includes(cycle)) throw httpError(422, "billing cycle must be monthly or yearly");
+    const amount = cycle === "yearly" ? plan.price_yearly_kes : plan.price_kes;
+    let payer, shown;
+    if (method === "mpesa") { payer = msisdn(b.phone); shown = payer.slice(0, 6) + "***" + payer.slice(-3); }
+    else {
+      payer = String(b.email || "").trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(payer)) throw httpError(422, "Enter the email address the card receipt should go to.");
+      shown = maskEmail(payer);
+    }
     if (plan.max_stores && S.sub.stores_used > plan.max_stores) throw httpError(409, `You have ${S.sub.stores_used} stores and ${plan.name} covers ${plan.max_stores}. Choose a larger plan.`);
-    if (S.payments.some((p) => p.status === "pending" && p._phone === phone)) throw httpError(409, "A payment request is already waiting on that phone. Approve or cancel it first.");
-    const p = { id: ++S.nextId, plan: plan.key, plan_name: plan.name, amount: plan.price_kes, phone: phone.slice(0, 6) + "***" + phone.slice(-3), _phone: phone,
-      status: "pending", receipt: null, result_desc: "", confirmed_by: "", requested_by: u.username, created_at: DEMO.iso(), completed_at: null, _at: Date.now() };
+    if (method === "mpesa" && amount > S.sub.mpesa_max_kes) throw httpError(409, `KES ${amount.toLocaleString("en-US")} is over M-Pesa's KES ${S.sub.mpesa_max_kes.toLocaleString("en-US")} limit for one payment. Pay by card, or choose monthly billing.`);
+    if (method === "mpesa" && S.payments.some((p) => p.status === "pending" && p._payer === payer)) throw httpError(409, "A payment request is already waiting on that phone. Approve or cancel it first.");
+    const p = { id: ++S.nextId, method, plan: plan.key, plan_name: plan.name, cycle, amount, payer: shown, _payer: payer, status: "pending",
+      receipt: null, result_desc: "", confirmed_by: "", requested_by: u.username, checkout_url: null, created_at: DEMO.iso(), completed_at: null, _at: Date.now() };
     S.payments.unshift(p);
-    await audit(u.username, "billing.mpesa_requested", `payment:${p.id}`, { plan: plan.key, amount: plan.price_kes, phone: p.phone, mode: "demo" });
-    return { ...clone(p), message: "Check your phone and enter your M-Pesa PIN to approve the payment." };
+    await audit(u.username, `billing.${method}_requested`, `payment:${p.id}`, { plan: plan.key, cycle, amount, payer: shown, mode: "demo" });
+    return method === "mpesa" ? { ...view(p), message: "Check your phone and enter your M-Pesa PIN to approve the payment." } : { ...view(p), mode: "simulated" };
+  }
+  function luhn(n) { let s = 0; [...n].reverse().forEach((c, i) => { let d = +c; if (i % 2) { d *= 2; if (d > 9) d -= 9; } s += d; }); return s % 10 === 0; }
+  async function settle(p, ok, desc, receipt, via) {
+    Object.assign(p, { status: ok ? "paid" : "failed", result_desc: desc, receipt, confirmed_by: via, completed_at: DEMO.iso() });
+    if (ok) {
+      const plan = S.sub.plans.find((x) => x.key === p.plan);
+      const days = p.cycle === "yearly" ? 365 : 30;
+      const same = S.sub.paid_plan === p.plan && S.sub.status === "active" && S.sub.paid_until && Date.parse(S.sub.paid_until) > DEMO.now();
+      const until = (same ? Date.parse(S.sub.paid_until) : DEMO.now()) + days * 86400000;
+      Object.assign(S.sub, { plan: clone(plan), paid_plan: plan.key, cycle: p.cycle, status: "active", paid_until: new Date(until).toISOString(),
+        grace_until: new Date(until + 7 * 86400000).toISOString(), days_left: Math.ceil((until - DEMO.now()) / 86400000) });
+      addAlert({ rule: "billing_paid", pillar: "finance", severity: "info",
+        title: `${plan.name} plan paid ${p.cycle}: KES ${p.amount.toLocaleString("en-US")} by ${p.method === "mpesa" ? "M-Pesa" : receipt}`,
+        detail: `${p.method === "mpesa" ? `Receipt ${receipt}. ` : ""}Paid up to ${new Date(until).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}.`,
+        store_id: null, subject: p.payer, owner_direct: true, audience: ["owner", "ojo_management"], confidence: 1, mode: "day",
+        live_feed_url: null, evidence: { payment_id: p.id, receipt }, created_at: 1, updated_at: 1 });
+    }
+    await audit(p.method, `billing.${p.method}_${p.status}`, `payment:${p.id}`, { receipt, via });
+  }
+  async function cardSimulate(id, number) {
+    const p = S.payments.find((x) => x.id === id && x.method === "card");
+    if (!p) throw httpError(404, "payment not found");
+    if (p.status !== "pending") return view(p);
+    const n = String(number || "").replace(/\D/g, "");
+    if (n.length < 12 || n.length > 19 || !luhn(n)) throw httpError(422, "That card number isn't valid.");
+    const brand = n[0] === "4" ? "Visa" : /^(5[1-5]|2[2-7])/.test(n) ? "Mastercard" : /^3[47]/.test(n) ? "American Express" : "Card";
+    const label = `${brand} •••• ${n.slice(-4)}`;
+    if (n === "4000000000000002") await settle(p, false, "Declined by the card issuer", label, "verify");
+    else if (n === "4000000000009995") await settle(p, false, "Insufficient funds", label, "verify");
+    else await settle(p, true, "Approved", label, "verify");
+    return view(p);
   }
   async function mpesaCheck(id) {
     const p = S.payments.find((x) => x.id === id);
     if (!p) throw httpError(404, "payment not found");
-    if (p.status === "pending" && Date.now() - p._at > 4500) {
-      p.completed_at = DEMO.iso(); p.confirmed_by = "callback";
-      if (p._phone === "254700000001") Object.assign(p, { status: "failed", result_desc: "Request cancelled by user" });
-      else if (p._phone === "254700000002") Object.assign(p, { status: "failed", result_desc: "The balance is insufficient for the transaction" });
+    if (p.method === "mpesa" && p.status === "pending" && Date.now() - p._at > 4500) {
+      if (p._payer === "254700000001") await settle(p, false, "Request cancelled by user", null, "callback");
+      else if (p._payer === "254700000002") await settle(p, false, "The balance is insufficient for the transaction", null, "callback");
       else {
         const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789";
-        p.status = "paid"; p.result_desc = "The service request is processed successfully.";
-        p.receipt = "S" + Array.from({ length: 9 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-        const plan = S.sub.plans.find((x) => x.key === p.plan);
-        const same = S.sub.paid_plan === p.plan && S.sub.status === "active" && S.sub.paid_until;
-        const until = (same ? Date.parse(S.sub.paid_until) : DEMO.now()) + 30 * 86400000;
-        Object.assign(S.sub, { plan: clone(plan), paid_plan: plan.key, status: "active", paid_until: new Date(until).toISOString(),
-          grace_until: new Date(until + 7 * 86400000).toISOString(), days_left: Math.ceil((until - DEMO.now()) / 86400000) });
-        addAlert({ rule: "billing_paid", pillar: "finance", severity: "info", title: `${plan.name} plan paid: KES ${plan.price_kes.toLocaleString("en-US")} by M-Pesa`,
-          detail: `Receipt ${p.receipt}. Paid up to ${new Date(until).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}.`,
-          store_id: null, subject: p.phone, owner_direct: true, audience: ["owner", "ojo_management"], confidence: 1, mode: "day",
-          live_feed_url: null, evidence: { payment_id: p.id, receipt: p.receipt }, created_at: 1, updated_at: 1 });
+        await settle(p, true, "The service request is processed successfully.",
+          "S" + Array.from({ length: 9 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""), "callback");
       }
-      await audit("mpesa", `billing.mpesa_${p.status}`, `payment:${p.id}`, { receipt: p.receipt, via: "callback" });
     }
-    return clone(p);
+    return view(p);
   }
 
   // ------------------------------------------------------------------ autonomous actions

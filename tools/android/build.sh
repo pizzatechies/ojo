@@ -12,7 +12,7 @@ cd "$(dirname "$0")"
 ANDROID_JAR=${ANDROID_JAR:-/usr/lib/android-sdk/platforms/android-23/android.jar}
 DX=${DX:-/usr/lib/android-sdk/build-tools/debian/dx}
 DEMO_HTML=${DEMO_HTML:-../../demo/index.html}
-OUT=${OUT:-../../downloads/ojo-sentinel.apk}
+OUT=${OUT:-build/ojo-sentinel.apk}
 PKG_DIR=com/ojostores/sentinel
 
 rm -rf build && mkdir -p build/gen build/classes build/res build/assets/demo

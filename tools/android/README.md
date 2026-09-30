@@ -14,7 +14,7 @@ sudo apt-get install android-sdk-platform-23 aapt dalvik-exchange zipalign apksi
 KEYSTORE=/path/to/release.jks KEYSTORE_PASS=... KEY_ALIAS=... ./build.sh
 ```
 
-This writes `../../downloads/ojo-sentinel.apk`, which the website links to. Build `demo/index.html` first with `tools/demo-build/build.py`, because the app bundles it.
+This writes `build/ojo-sentinel.apk`. The website does not offer the app for download; share the file directly or publish it through an app store. Build `demo/index.html` first with `tools/demo-build/build.py`, because the app bundles it.
 
 Keep the release key safe and out of this repository. Android only installs an update when it is signed with the same key as the installed app. If `KEYSTORE` isn't set, the script creates a throwaway key.
 
