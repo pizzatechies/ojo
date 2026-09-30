@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OJO Sentinel</title>
+<meta name="description" content="OJO Sentinel watches your stock, cash, people, goods and systems, and tells the business owner the truth in real time. No manager can hide it.">
+<meta property="og:title" content="OJO Sentinel — We See Everything They Ignore">
+<meta property="og:description" content="AI-powered business intelligence and security for retail: inventory, money, people, goods, buildings and data on one owner's dashboard.">
+<meta property="og:image" content="assets/dashboard.jpg">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0b0e12">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a light "daylight" page broken by dark "command centre" bands where the product speaks
+   in its own voice (alert logs, ledgers, feeds). Gold is the eye: used for the mark, links and one CTA. */
+:root {
+  --paper: #eef1f4;      /* cool daylight ground, faint blue bias */
+  --panel: #ffffff;
+  --ink: #0f141b;
+  --muted: #536070;
+  --line: #d3d9e0;
+  --gold: #9a6f00;       /* gold legible on light */
+  --gold-bright: #d4a017;
+  --night: #0b0e12;      /* command-centre bands */
+  --night-2: #131920;
+  --night-line: #25303b;
+  --night-text: #e6eaee;
+  --night-muted: #8e9aa7;
+  --alert: #d9363e;
+  --alert-bright: #ff5a5f;
+  --high: #ff8a3d;
+  --ok: #34c77b;
+  --on-gold: #14110a;
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --wrap: 1180px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d1116; --panel: #141a21; --ink: #e7ebef; --muted: #93a0ad; --line: #242e38; --gold: #d9a822;
+    --night: #06080b; --night-2: #10151b; --night-line: #222b35; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d1116; --panel: #141a21; --ink: #e7ebef; --muted: #93a0ad; --line: #242e38; --gold: #d9a822;
+  --night: #06080b; --night-2: #10151b; --night-line: #222b35; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+img { max-width: 100%; height: auto; display: block; }
+[id] { scroll-margin-top: 84px; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 3px; border-radius: 4px; }
+.wrap { width: min(var(--wrap), 100%); margin: 0 auto; padding-inline: 20px; }
+.mono { font-family: var(--font-mono); }
+h1, h2, h3 { font-family: var(--font-display); font-stretch: 125%; line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-size: clamp(30px, 4.4vw, 52px); font-weight: 800; }
+h3 { font-size: 19px; font-weight: 700; font-stretch: 112%; letter-spacing: 0; line-height: 1.2; }
+p { margin: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); font-weight: 500; }
+.lede { font-size: clamp(18px, 2vw, 21px); color: var(--muted); max-width: 60ch; }
+section { padding-block: clamp(64px, 9vw, 120px); }
+.section-head { display: grid; gap: 16px; margin-bottom: 48px; max-width: 760px; }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; font-weight: 600; font-size: 16px; text-decoration: none; border: 1px solid transparent; transition: transform .15s ease, background .15s ease; }
+.btn:hover { transform: translateY(-1px); }
+.btn-gold { background: var(--gold-bright); color: var(--on-gold); }
+.btn-gold:hover { background: #e2b12a; }
+.btn-line { border-color: currentColor; color: inherit; }
+.btn .arrow { font-family: var(--font-mono); }
+
+/* eye mark */
+.eye { width: 30px; height: 30px; border-radius: 50%; background: var(--gold-bright); position: relative; flex: none; box-shadow: 0 0 22px color-mix(in srgb, var(--gold-bright) 55%, transparent); }
+.eye::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: var(--night); }
+
+/* nav */
+.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: color-mix(in srgb, var(--night) 88%, transparent); backdrop-filter: blur(10px); color: var(--night-text); border-bottom: 1px solid var(--night-line); }
+.nav .wrap { display: flex; align-items: center; gap: 24px; min-height: 64px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.brand b { font-family: var(--font-display); font-stretch: 125%; letter-spacing: .14em; font-size: 16px; }
+.nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 15px; }
+.nav-links a { text-decoration: none; color: var(--night-muted); }
+.nav-links a:hover { color: var(--night-text); }
+.nav .btn { padding: 9px 16px; font-size: 14px; }
+@media (max-width: 860px) { .nav-links { display: none; } .nav .btn { margin-left: auto; } }
+@media (max-width: 480px) { .nav .wrap { gap: 10px; flex-wrap: nowrap; } .brand b { font-size: 14px; letter-spacing: .1em; } .nav .btn { padding: 8px 12px; font-size: 13px; white-space: nowrap; } .nav .btn .arrow { display: none; } }
+
+/* hero (a command-centre band) */
+.hero { background: radial-gradient(ellipse 70% 60% at 18% 20%, color-mix(in srgb, var(--gold-bright) 14%, transparent), transparent 70%), var(--night); color: var(--night-text); padding-block: clamp(56px, 8vw, 104px) clamp(56px, 7vw, 88px); overflow: hidden; }
+.hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(32px, 5vw, 72px); align-items: center; }
+@media (max-width: 960px) { .hero-grid { grid-template-columns: 1fr; } }
+.hero h1 { font-size: clamp(40px, 6.2vw, 84px); font-weight: 800; line-height: .98; }
+.hero h1 em { font-style: normal; color: var(--gold-bright); }
+.hero .lede { color: var(--night-muted); margin-top: 24px; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
+.hero-note { margin-top: 18px; font-size: 14px; color: var(--night-muted); }
+
+/* the live console */
+.console { background: var(--night-2); border: 1px solid var(--night-line); border-radius: 14px; box-shadow: 0 30px 80px rgba(0, 0, 0, .45); min-width: 0; }
+.console-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--night-line); font-family: var(--font-mono); font-size: 12px; color: var(--night-muted); gap: 10px; }
+.live { display: inline-flex; align-items: center; gap: 8px; color: var(--ok); }
+.live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); animation: blink 2s infinite; }
+@keyframes blink { 50% { opacity: .35; } }
+.feed { list-style: none; margin: 0; padding: 6px 0; height: 408px; overflow: hidden; position: relative; }
+.feed::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: linear-gradient(transparent, var(--night-2)); pointer-events: none; }
+.feed li { padding: 12px 16px 12px 18px; border-left: 3px solid var(--night-line); margin: 0 12px 6px; display: grid; gap: 4px; }
+.feed li.critical { border-left-color: var(--alert-bright); }
+.feed li.high { border-left-color: var(--high); }
+.feed li.medium { border-left-color: var(--gold-bright); }
+.feed li.enter { animation: enter .6s ease-out; }
+@keyframes enter { from { opacity: 0; transform: translateY(-10px); background: color-mix(in srgb, var(--gold-bright) 18%, transparent); } }
+.feed .meta { display: flex; gap: 10px; align-items: center; font-family: var(--font-mono); font-size: 11.5px; color: var(--night-muted); flex-wrap: wrap; }
+.chip { font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; padding: 1px 7px; border-radius: 4px; }
+.chip.critical { background: var(--alert-bright); color: #fff; }
+.chip.high { background: var(--high); color: var(--on-gold); }
+.chip.medium { background: var(--gold-bright); color: var(--on-gold); }
+.chip.owner { border: 1px solid color-mix(in srgb, var(--gold-bright) 60%, transparent); color: var(--gold-bright); }
+.feed .t { font-weight: 600; font-size: 15px; line-height: 1.35; }
+.feed .d { font-size: 13px; color: var(--night-muted); line-height: 1.45; }
+
+/* sites strip */
+.sites { background: var(--night); color: var(--night-muted); border-top: 1px solid var(--night-line); }
+.sites .wrap { display: flex; flex-wrap: wrap; gap: 12px 36px; padding-block: 18px; font-family: var(--font-mono); font-size: 13px; align-items: center; }
+.sites b { color: var(--night-text); font-weight: 500; }
+.sites .label { color: var(--gold-bright); letter-spacing: .12em; text-transform: uppercase; font-size: 11.5px; }
+
+/* problem */
+.problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 88px); align-items: start; }
+@media (max-width: 860px) { .problem-grid { grid-template-columns: 1fr; } }
+.leaks { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.leaks li { display: grid; grid-template-columns: 150px 1fr; gap: 18px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.leaks .where { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding-top: 3px; }
+@media (max-width: 520px) { .leaks li { grid-template-columns: 1fr; gap: 4px; } }
+
+/* pillars */
+.pillars { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden; }
+.pillar { padding: 26px 22px 28px; border-right: 1px solid var(--line); display: grid; align-content: start; gap: 14px; min-width: 0; }
+.pillar:last-child { border-right: 0; }
+.pillar .n { font-family: var(--font-mono); font-size: 12px; color: var(--gold); }
+.pillar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.pillar li { font-size: 14.5px; line-height: 1.45; color: var(--muted); }
+.pillar li b { display: block; color: var(--ink); font-weight: 600; font-size: 15px; }
+@media (max-width: 1080px) { .pillars { grid-template-columns: repeat(2, 1fr); } .pillar { border-bottom: 1px solid var(--line); } .pillar:nth-child(2n) { border-right: 0; } .pillar:last-child { grid-column: 1 / -1; } }
+@media (max-width: 600px) { .pillars { grid-template-columns: 1fr; } .pillar { border-right: 0; } }
+.dash-note { margin-top: 22px; color: var(--muted); font-size: 15px; }
+
+/* screenshot */
+.shot-band { background: var(--night); color: var(--night-text); }
+.shot-band .lede { color: var(--night-muted); }
+.shot { border-radius: 14px; overflow: hidden; border: 1px solid var(--night-line); box-shadow: 0 40px 90px rgba(0, 0, 0, .5); }
+.shot-caption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 18px; font-size: 14px; color: var(--night-muted); }
+
+/* governance */
+.gov-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: clamp(32px, 5vw, 72px); align-items: center; }
+@media (max-width: 960px) { .gov-grid { grid-template-columns: 1fr; } }
+.rules { display: grid; gap: 22px; margin-top: 32px; }
+.rule { display: grid; grid-template-columns: 26px 1fr; gap: 14px; }
+.rule .tick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--gold); margin-top: 3px; position: relative; }
+.rule .tick::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--gold); }
+.rule p { color: var(--muted); font-size: 16px; }
+.ledger { background: var(--night); color: var(--night-text); border-radius: 14px; border: 1px solid var(--night-line); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; overflow-x: auto; min-width: 0; }
+.ledger-head { padding: 12px 18px; border-bottom: 1px solid var(--night-line); color: var(--night-muted); display: flex; justify-content: space-between; gap: 12px; }
+.ledger pre { margin: 0; padding: 16px 18px 20px; white-space: pre; }
+.ledger .refused { color: var(--alert-bright); }
+.ledger .dim { color: var(--night-muted); }
+.ledger .gold { color: var(--gold-bright); }
+.ledger .ok { color: var(--ok); }
+
+/* stories */
+.stories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+@media (max-width: 960px) { .stories { grid-template-columns: 1fr; } }
+.story { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.story .alert { font-family: var(--font-mono); font-size: 13px; line-height: 1.55; background: var(--night); color: var(--night-text); border-radius: 10px; padding: 14px 16px; border-left: 3px solid var(--high); }
+.story .alert.critical { border-left-color: var(--alert-bright); }
+.story .alert small { display: block; color: var(--night-muted); margin-top: 6px; }
+.story p { color: var(--muted); font-size: 15.5px; }
+.stories-note { margin-top: 18px; font-size: 14px; color: var(--muted); }
+
+/* integrations */
+.connect { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.connect div { background: var(--panel); padding: 24px; display: grid; gap: 8px; align-content: start; }
+.connect p { color: var(--muted); font-size: 15px; }
+.connect .mono { font-size: 12px; color: var(--gold); letter-spacing: .06em; }
+@media (max-width: 860px) { .connect { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .connect { grid-template-columns: 1fr; } }
+
+/* protects */
+.protects { background: var(--night); color: var(--night-text); }
+.protect-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--night-line); }
+.protect-list li { display: grid; grid-template-columns: minmax(160px, 280px) 1fr; gap: 24px; padding: 22px 0; border-bottom: 1px solid var(--night-line); align-items: baseline; }
+.protect-list b { font-family: var(--font-display); font-stretch: 125%; font-size: clamp(24px, 3vw, 34px); font-weight: 800; }
+.protect-list span { color: var(--night-muted); font-size: 18px; }
+@media (max-width: 640px) { .protect-list li { grid-template-columns: 1fr; gap: 4px; } }
+.protects .eyebrow { color: var(--gold-bright); }
+
+/* principles */
+.principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; }
+.principles p { color: var(--muted); font-size: 15.5px; margin-top: 10px; }
+@media (max-width: 860px) { .principles { grid-template-columns: 1fr; gap: 24px; } }
+
+/* final CTA */
+.final { background: radial-gradient(ellipse 60% 80% at 80% 100%, color-mix(in srgb, var(--gold-bright) 16%, transparent), transparent 70%), var(--night); color: var(--night-text); text-align: left; }
+.final .wrap { display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; }
+@media (max-width: 860px) { .final .wrap { grid-template-columns: 1fr; } }
+.final h2 { font-size: clamp(34px, 5vw, 64px); }
+.final .lede { color: var(--night-muted); margin-top: 18px; }
+.final ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; font-size: 15px; color: var(--night-muted); }
+.final ul li::before { content: "→ "; color: var(--gold-bright); font-family: var(--font-mono); }
+
+footer { background: var(--night); color: var(--night-muted); border-top: 1px solid var(--night-line); font-size: 14px; }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding-block: 28px calc(28px + env(safe-area-inset-bottom, 0px)); }
+footer b { color: var(--night-text); font-family: var(--font-display); font-stretch: 125%; letter-spacing: .08em; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="OJO Sentinel home"><span class="eye"></span><b>OJO SENTINEL</b></a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#capabilities">Capabilities</a>
+      <a href="#truth">No one can hide it</a>
+      <a href="#connects">Works with what you have</a>
+      <a href="#protects">What it protects</a>
+    </nav>
+    <a class="btn btn-gold" href="demo/">Try the live demo <span class="arrow">→</span></a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow" style="color:var(--gold-bright)">OJO Stores Management presents</p>
+        <h1 style="margin-top:18px">We see everything <em>they ignore.</em></h1>
+        <p class="lede">OJO Sentinel watches your stock, your cash, your people, your deliveries and your systems. It tells you, the owner, what is really happening in every store, the moment it happens. No manager can hide it from you.</p>
+        <div class="hero-cta">
+          <a class="btn btn-gold" href="demo/">Try the live demo <span class="arrow">→</span></a>
+          <a class="btn btn-line" href="#capabilities">See what it watches</a>
+        </div>
+        <p class="hero-note">The demo runs in your browser. No sign-up needed.</p>
+      </div>
+
+      <div class="console" aria-label="Example of the live incident feed the owner sees">
+        <div class="console-head"><span class="live">LIVE · OWNER FEED</span><span>4 stores · 24 cameras · 3 vehicles</span></div>
+        <ul class="feed" id="feed">
+          <li class="critical"><div class="meta"><span class="chip critical">critical</span><span class="chip owner">owner-direct</span><span>10:58 EAT · MBA-01</span></div>
+            <div class="t">Shipment SHP-2026-0091 tampered at Mtito Andei weighbridge</div>
+            <div class="d">Seal broken; package opened; weight changed −14.3%. Managers cannot override.</div></li>
+          <li class="high"><div class="meta"><span class="chip high">high</span><span class="chip owner">owner-direct</span><span>10:51 EAT · NBO-01</span></div>
+            <div class="t">Storekeeper's count of Smartphone A15 doesn't match reality</div>
+            <div class="d">Storekeeper reported 10; automated sensor count shows 7. Value KES 52,500.</div></li>
+          <li class="high"><div class="meta"><span class="chip high">high</span><span class="chip owner">owner-direct</span><span>10:44 EAT · A109</span></div>
+            <div class="t">Truck KDA 101X (Nairobi → Mombasa) left its planned route</div>
+            <div class="d">9,999 m outside the 3,000 m corridor.</div></li>
+          <li class="high"><div class="meta"><span class="chip high">high</span><span class="chip owner">owner-direct</span><span>08:37 WAT · LOS-01</span></div>
+            <div class="t">Cash short by KES 2,846 on register R1</div>
+            <div class="d">Expected 46,795, counted 43,949.</div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="sites" aria-label="Demo network local times">
+    <div class="wrap">
+      <span class="label">Demo network</span>
+      <span><b>NBO-01</b> Nairobi <span data-tz="Africa/Nairobi">--:--</span></span>
+      <span><b>MBA-01</b> Mombasa <span data-tz="Africa/Nairobi">--:--</span></span>
+      <span><b>KLA-01</b> Kampala <span data-tz="Africa/Kampala">--:--</span></span>
+      <span><b>LOS-01</b> Lagos <span data-tz="Africa/Lagos">--:--</span></span>
+    </div>
+  </div>
+
+  <section id="problem">
+    <div class="wrap problem-grid">
+      <div class="section-head" style="margin-bottom:0">
+        <p class="eyebrow">Why OJO Sentinel exists</p>
+        <h2>In the noise, things go wrong quietly.</h2>
+        <p class="lede">You are running a hundred things at once. By the time you notice a loss, it has usually been going on for weeks. OJO Sentinel was built for the business owner who deserves to know the truth about what is happening in their business, in real time, without filters.</p>
+      </div>
+      <ul class="leaks" aria-label="Where money leaks">
+        <li><span class="where">Stockroom</span><span>Stock walks out the door, and the storekeeper's count still says everything is there.</span></li>
+        <li><span class="where">Records</span><span>Figures are adjusted and written off, and the books still balance.</span></li>
+        <li><span class="where">In transit</span><span>Deliveries are opened on the road and resealed before they reach you.</span></li>
+        <li><span class="where">The till</span><span>Refunds, voids and "discounts" pile up for one cashier.</span></li>
+        <li><span class="where">Inbox</span><span>A convincing email asks finance to pay a "new" supplier account.</span></li>
+        <li><span class="where">Together</span><span>Small signals across several people add up to coordinated theft.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="capabilities" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Core capabilities</p>
+        <h2>Five pillars. One command dashboard.</h2>
+        <p class="lede">Physical security, digital protection, inventory control, people tracking and AI threat detection, built as one system that sees across all of them.</p>
+      </div>
+      <div class="pillars">
+        <div class="pillar">
+          <span class="n">01</span><h3>Physical security</h3>
+          <ul>
+            <li><b>Smart CCTV Brain</b>Connects to the cameras you already own. No rip-and-replace.</li>
+            <li><b>Facial recognition</b>Knows your staff, and flags known offenders on entry.</li>
+            <li><b>Restricted area alerts</b>Anyone without clearance in a stockroom or cash office is escalated instantly.</li>
+            <li><b>Weapons detection</b>Alerts security at once, and can lock the building down automatically.</li>
+            <li><b>Day &amp; night modules</b>At night, any unrecognised presence is an intrusion.</li>
+          </ul>
+        </div>
+        <div class="pillar">
+          <span class="n">02</span><h3>Digital &amp; cyber</h3>
+          <ul>
+            <li><b>Fake email detection</b>Catches look-alike domains, impersonated executives and "new bank details" scams.</li>
+            <li><b>Account protection</b>Spots password guessing and credential stuffing, and blocks the attacker.</li>
+            <li><b>Honeypot traps</b>Decoy logins, keys and files that expose hackers and insiders who take the bait.</li>
+          </ul>
+        </div>
+        <div class="pillar">
+          <span class="n">03</span><h3>Inventory &amp; money</h3>
+          <ul>
+            <li><b>Inventory intelligence</b>Sensors count stock on their own. When a storekeeper's figures don't match, you're told directly.</li>
+            <li><b>Goods tamper alerts</b>Seal and weight checked at every checkpoint, from origin to delivery.</li>
+            <li><b>Money tracking</b>Cash drawer checks, refund and void patterns, and payouts to unknown accounts.</li>
+          </ul>
+        </div>
+        <div class="pillar">
+          <span class="n">04</span><h3>People &amp; movement</h3>
+          <ul>
+            <li><b>Satellite &amp; GPS tracking</b>Vehicles, cargo and key personnel, with route-corridor alerts.</li>
+            <li><b>Employee geo-positioning</b>Who is on site, when they arrived, and time away during a shift.</li>
+            <li><b>Phone location checks</b>Spots faked GPS and impossible travel on driver and staff phones.</li>
+          </ul>
+        </div>
+        <div class="pillar">
+          <span class="n">05</span><h3>AI threat detection</h3>
+          <ul>
+            <li><b>Behavioural analysis</b>Learns each person's normal, and flags what isn't.</li>
+            <li><b>Coordinated theft</b>Joins weak signals across people and places into one finding.</li>
+            <li><b>Continuous learning</b>Every alert you confirm or dismiss makes the next one sharper.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="dash-note">All of it arrives on one <b>unified owner dashboard</b>, with a <b>live incident feed</b> to your phone. When something serious happens, you get the alert, the camera feed and a one-tap lockdown.</p>
+    </div>
+  </section>
+
+  <section class="shot-band" aria-labelledby="shot-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow" style="color:var(--gold-bright)">The owner's view</p>
+        <h2 id="shot-title">One screen. Every store. Anywhere in the world.</h2>
+        <p class="lede">Live sales, stock value, staff on site, vehicles on the road, cameras and alerts for every branch, on your phone or laptop.</p>
+      </div>
+      <a class="shot" href="demo/" style="display:block"><img src="assets/dashboard.jpg" width="2160" height="1350" loading="lazy" alt="OJO Sentinel dashboard showing sales, stock value, open alerts, a live map of stores in Lagos, Kampala, Nairobi and Mombasa, and a live incident feed"></a>
+      <div class="shot-caption"><span>From the live demo: four stores, mid-morning.</span><a href="demo/" style="color:var(--gold-bright)">Open the demo →</a></div>
+    </div>
+  </section>
+
+  <section id="truth">
+    <div class="wrap gov-grid">
+      <div>
+        <p class="eyebrow">Our uncompromising principle</p>
+        <h2 style="margin-top:16px">No one can hide the truth from you. Not even your managers.</h2>
+        <div class="rules">
+          <div class="rule"><span class="tick"></span><div><h3>Owner-direct alerts</h3><p>Theft, tampering, cash and security alerts go straight to you and OJO Stores Management. Only you can close them.</p></div></div>
+          <div class="rule"><span class="tick"></span><div><h3>No override for managers</h3><p>A manager who tries to dismiss an alert, release tampered goods or lift a lockdown is refused, and you are told who tried.</p></div></div>
+          <div class="rule"><span class="tick"></span><div><h3>A record that can't be rewritten</h3><p>Every sensitive action is written to a hash-chained ledger. If anyone edits or deletes history, the chain breaks and the dashboard shows it.</p></div></div>
+        </div>
+      </div>
+      <div class="ledger" aria-label="Example audit ledger entries">
+        <div class="ledger-head"><span>AUDIT LEDGER · NBO-01</span><span class="ok">● chain intact</span></div>
+<pre><span class="dim">10:52:07</span>  system          alert.raised
+          <span class="gold">Weapon detected: handgun at Main Entrance</span>
+<span class="dim">10:52:07</span>  system          lockdown.engaged   <span class="dim">automatic</span>
+<span class="dim">10:54:31</span>  store.nbo-01    <span class="refused">alert.override_refused</span>
+          attempted=resolve  role=manager
+<span class="dim">10:54:31</span>  system          alert.raised
+          <span class="gold">Store manager tried to resolve an
+          owner-direct alert</span>
+<span class="dim">10:55:02</span>  store.nbo-01    <span class="refused">lockdown.release_refused</span>
+
+<span class="dim">hash  9f3c07…e21a
+prev  41b7d2…0c9d   sha-256</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0" aria-labelledby="stories-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">What you actually see</p>
+        <h2 id="stories-title">Plain answers, not raw footage.</h2>
+        <p class="lede">OJO Sentinel filters the noise and tells you what happened, where, and what it is worth.</p>
+      </div>
+      <div class="stories">
+        <article class="story">
+          <div class="alert">Storekeeper's count of Smartphone A15 doesn't match reality at OJO Stores Nairobi CBD<small>Reported 10 · sensors counted 7 · KES 52,500</small></div>
+          <h3>The count that didn't add up</h3>
+          <p>Shelf sensors counted the phones on their own. The storekeeper's figure matched the books, not the shelf. The owner saw both numbers side by side.</p>
+        </article>
+        <article class="story">
+          <div class="alert critical">Shipment SHP-2026-0091 tampered at Mtito Andei weighbridge<small>Seal broken · package opened · weight −14.3%</small></div>
+          <h3>The delivery that got lighter</h3>
+          <p>A consignment of 40 TVs lost weight on the Nairobi–Mombasa road. The alert came with the weighbridge camera feed. The goods could only be released by the owner.</p>
+        </article>
+        <article class="story">
+          <div class="alert critical">Possible coordinated theft at OJO Stores Mombasa Nyali<small>Refund spree · missing stock · false count</small></div>
+          <h3>Three small things, one pattern</h3>
+          <p>One cashier's refund rate was far above every peer, stock went missing, and a count was wrong, all in the same store within hours. OJO Sentinel joined them into one finding.</p>
+        </article>
+      </div>
+      <p class="stories-note">Examples from the demo. The alert text is produced by the OJO Sentinel detection engines.</p>
+    </div>
+  </section>
+
+  <section id="connects" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Works with what you have</p>
+        <h2>It sits on top of your existing setup.</h2>
+        <p class="lede">OJO Sentinel is the brain. It connects to the cameras, sensors, trackers and tills you already run, and makes sense of all of them together.</p>
+      </div>
+      <div class="connect">
+        <div><span class="mono">CCTV</span><h3>Any camera, any brand</h3><p>Hikvision, Dahua, Axis, Uniview or generic. RTSP, ONVIF, HLS and more.</p></div>
+        <div><span class="mono">STOCK</span><h3>Shelf and RFID sensors</h3><p>Automated counts from RFID gates, shelf-weight sensors or camera counting.</p></div>
+        <div><span class="mono">GPS</span><h3>Trackers and satellite tags</h3><p>Trucks, cargo pallets and personnel, on the map in real time.</p></div>
+        <div><span class="mono">TILL</span><h3>Point of sale and payments</h3><p>Cash, card and mobile-money sales, refunds, voids and payouts.</p></div>
+        <div><span class="mono">MAIL</span><h3>Your email</h3><p>Every incoming email checked before staff act on it.</p></div>
+        <div><span class="mono">DOORS</span><h3>Access control</h3><p>Lock and unlock commands for building lockdowns.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="protects" class="protects">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">OJO Sentinel protects</p>
+        <h2>Every shilling that leaks should have been your profit.</h2>
+      </div>
+      <ul class="protect-list">
+        <li><b>Your inventory</b><span>from the moment it is ordered to the moment it is sold.</span></li>
+        <li><b>Your money</b><span>from the register to the account.</span></li>
+        <li><b>Your people</b><span>knowing who is where and who is doing what.</span></li>
+        <li><b>Your data</b><span>from cyber threats that haven't even been named yet.</span></li>
+        <li><b>Your goods</b><span>in transit, in storage and on the shelf.</span></li>
+        <li><b>Your building</b><span>from unauthorised access, weapons and physical threats.</span></li>
+        <li><b>Your ROI</b><span>because what you don't lose is profit you keep.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section aria-labelledby="principles-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Our commitment</p>
+        <h2 id="principles-title">Built for the African market and beyond.</h2>
+      </div>
+      <div class="principles">
+        <div><h3>It does not sleep</h3><p>Day and night modes change what counts as normal. At night, any unrecognised person on site is treated as an intrusion.</p></div>
+        <div><h3>It gets sharper</h3><p>OJO Sentinel learns from every alert you confirm or dismiss, and from the normal patterns of each business it protects.</p></div>
+        <div><h3>It respects your people</h3><p>Staff locations are tracked only during working hours and with consent on file. Face data is stored as templates, never photos.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="final" aria-labelledby="final-title">
+    <div class="wrap">
+      <div>
+        <h2 id="final-title">See it for yourself.</h2>
+        <p class="lede">Step into the owner's command centre. Set off a weapon alert, a tampered delivery or a storekeeper hiding a loss, then switch to a manager and try to make it go away.</p>
+        <div class="hero-cta"><a class="btn btn-gold" href="demo/">Open the live demo <span class="arrow">→</span></a></div>
+      </div>
+      <ul aria-label="In the demo">
+        <li>Four stores in Nairobi, Mombasa, Kampala and Lagos</li>
+        <li>13 real incident types to trigger</li>
+        <li>Owner and manager views side by side</li>
+        <li>Runs in your browser, nothing to install</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><b>OJO SENTINEL</b> · OJO Stores Management · Sir Ojo</span>
+    <span>We Are The Sentinels. © 2026</span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Local clocks for the demo network.
+  const tick = () => document.querySelectorAll("[data-tz]").forEach((el) => {
+    try { el.textContent = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: el.dataset.tz }); } catch (_) {}
+  });
+  tick(); setInterval(tick, 20000);
+
+  // The hero feed: real alert text from the OJO Sentinel engines, arriving one at a time.
+  const feed = document.getElementById("feed");
+  if (!feed || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const next = [
+    ["critical", "EAT · NBO-01", "Weapon detected: handgun at Main Entrance", "Detector confidence 93%. Building locked down automatically."],
+    ["medium", "EAT · MBA-01", "Grace Wekesa: refund rate far above peers", "Refund rate 15.0%. Pattern consistent with refund fraud."],
+    ["high", "EAT · KLA-01", "Flagged individual identified on entry", "Identified in two prior shoplifting incidents."],
+    ["high", "HEAD OFFICE", "Fake email: URGENT supplier payment, new bank details", "Sender domain 'ojo-st0res.com' imitates 'ojostores.com'."],
+    ["high", "SYSTEMS", "Honeypot sprung: canary link in HR/Payroll 2026.xlsx", "Opened from 41.125.171.78 by an automated script."],
+    ["critical", "EAT · MBA-01", "Possible coordinated theft at OJO Stores Mombasa Nyali", "Refund spree, missing stock and a false count within 3 hours."],
+    ["high", "FLEET", "Driver's phone location could not be verified", "Mock-location app active; GPS 81.7 km from network location."],
+    ["high", "EAT · NBO-01", "Zawadi Mutua entered restricted area: Stockroom", "No stockroom clearance on file."],
+  ];
+  let i = 0;
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  setInterval(() => {
+    if (document.hidden) return;
+    const [sev, where, t, d] = next[i++ % next.length];
+    const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Nairobi" });
+    const li = document.createElement("li");
+    li.className = `${sev} enter`;
+    li.innerHTML = `<div class="meta"><span class="chip ${sev}">${sev}</span><span class="chip owner">owner-direct</span><span>${now} ${esc(where)}</span></div><div class="t">${esc(t)}</div><div class="d">${esc(d)}</div>`;
+    feed.prepend(li);
+    while (feed.children.length > 6) feed.lastElementChild.remove();
+  }, 3200);
+})();
+</script>
+</body>
+</html>
