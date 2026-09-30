@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OJO Sentinel</title>
+<style>
+  :root {
+    --night: #0b0d10; --panel: #14171c; --panel-2: #1b1f26; --line: #2a2f38;
+    --text: #eef0f3; --muted: #9aa3ae; --gold: #d4a017; --gold-bright: #f0bf3a; --bad: #ef5350;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--night); color: var(--text); }
+  body { font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; min-height: 100vh;
+         padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+  main { max-width: 480px; margin: 0 auto; display: grid; gap: 18px; }
+  .brand { display: flex; align-items: center; gap: 12px; margin: 8px 0 6px; }
+  .eye { width: 40px; height: 40px; border-radius: 50%; background: var(--gold); display: grid; place-items: center; flex: none; }
+  .eye::after { content: ""; width: 15px; height: 15px; border-radius: 50%; background: var(--night); }
+  .brand b { letter-spacing: .16em; font-size: 17px; display: block; }
+  .brand small { color: var(--muted); font-size: 13px; }
+  h1 { font-size: 30px; line-height: 1.15; margin: 10px 0 0; letter-spacing: -.01em; }
+  h1 em { font-style: normal; color: var(--gold-bright); }
+  .lede { color: var(--muted); margin: 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 10px; }
+  .card h2 { font-size: 18px; margin: 0; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .tag { font: 600 11px/1 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: .08em; color: var(--gold); }
+  button, .btn { appearance: none; border: 0; border-radius: 12px; padding: 14px 16px; font: 600 16px/1 inherit;
+                 font-family: inherit; cursor: pointer; text-align: center; text-decoration: none; display: block; width: 100%; }
+  .primary { background: var(--gold); color: #111; }
+  .secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+  button:active, .btn:active { transform: translateY(1px); }
+  label { font-size: 13px; color: var(--muted); }
+  input { width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--night);
+          color: var(--text); font: 16px/1.2 inherit; font-family: inherit; }
+  input:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: transparent; }
+  .error { color: var(--bad); font-size: 14px; min-height: 1em; margin: 0; }
+  .recent { display: flex; flex-wrap: wrap; gap: 8px; }
+  .recent button { width: auto; padding: 8px 12px; font-size: 13px; font-weight: 500; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+  footer { color: var(--muted); font-size: 12.5px; text-align: center; margin-top: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><span class="eye" aria-hidden="true"></span><div><b>OJO SENTINEL</b><small>OJO Stores Management</small></div></div>
+  <div>
+    <h1>We see everything <em>they ignore.</em></h1>
+    <p class="lede" style="margin-top:10px">Your stores, stock, cash, people, deliveries and tax in one command centre, in your pocket.</p>
+  </div>
+
+  <section class="card" aria-labelledby="demo-title">
+    <span class="tag">WORKS OFFLINE</span>
+    <h2 id="demo-title">Explore the demo</h2>
+    <p>Four sample stores with live alerts. Set off incidents and see how the owner is told, then switch to a store manager's view.</p>
+    <a class="btn primary" href="demo/index.html">Open the demo</a>
+  </section>
+
+  <section class="card" aria-labelledby="server-title">
+    <span class="tag">YOUR BUSINESS</span>
+    <h2 id="server-title">Connect to your server</h2>
+    <p>Enter the address of your OJO Sentinel server and sign in with your own account.</p>
+    <form id="connect" novalidate>
+      <label for="url">Server address</label>
+      <input id="url" name="url" type="url" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false"
+             placeholder="https://sentinel.yourcompany.co.ke" style="margin:6px 0 12px">
+      <button class="secondary" type="submit">Connect</button>
+      <p id="error" class="error" role="alert"></p>
+    </form>
+    <div id="recent" class="recent" hidden></div>
+  </section>
+
+  <footer>Staff tracking and face recognition only run where your business has set them up, with staff consent.</footer>
+</main>
+<script>
+(() => {
+  const KEY = "ojo-servers";
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (_) { return []; } };
+  const save = (list) => { try { localStorage.setItem(KEY, JSON.stringify(list.slice(0, 4))); } catch (_) {} };
+  const input = document.getElementById("url"), error = document.getElementById("error"), recent = document.getElementById("recent");
+
+  function normalise(raw) {
+    let v = raw.trim();
+    if (!v) throw new Error("Enter your server's address.");
+    if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+    const u = new URL(v);
+    if (!u.hostname.includes(".") && u.hostname !== "localhost" && !/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname)) throw new Error("That doesn't look like a server address.");
+    return u.origin + u.pathname.replace(/\/+$/, "") + "/";
+  }
+  function go(url) {
+    save([url, ...load().filter((x) => x !== url)]);
+    location.href = url;
+  }
+  function renderRecent() {
+    const list = load();
+    recent.hidden = !list.length;
+    recent.innerHTML = "";
+    for (const url of list) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+      b.addEventListener("click", () => go(url));
+      recent.appendChild(b);
+    }
+    if (list.length && !input.value) input.value = list[0];
+  }
+  document.getElementById("connect").addEventListener("submit", (e) => {
+    e.preventDefault();
+    error.textContent = "";
+    try { go(normalise(input.value)); } catch (err) { error.textContent = err.message.startsWith("Failed") ? "That doesn't look like a server address." : err.message; }
+  });
+  renderRecent();
+})();
+</script>
+</body>
+</html>
