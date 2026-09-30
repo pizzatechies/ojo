@@ -102,6 +102,12 @@ html, body { background: var(--bg); color: var(--text); }
 .toggle input { width: auto; }
 .demo-note { font-size: 12px; color: var(--muted); margin: 0; }
 main { padding-bottom: 96px; }
+/* On wide screens, make room for the open demo panel instead of covering content with it. */
+@media (min-width: 1200px) {
+  body.demo-open main { padding-right: calc(330px + 32px); }
+  body.demo-open .topbar { padding-right: calc(330px + 32px); }
+  .demo-panel { top: calc(76px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 100px); }
+}
 /* ask dialog */
 .ask-card { width: min(460px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 10px; }
 .ask-card label { font-weight: 600; }
@@ -122,10 +128,6 @@ def swap(old, new, count=1):
 
 swap("const s = (Date.now() - new Date(iso).getTime()) / 1000;", "const s = (window.DEMO.now() - new Date(iso).getTime()) / 1000;")
 swap("new Date(Date.now() - 86400000)", "new Date(window.DEMO.now() - 86400000)")
-swap('const note = prompt(act === "tp" ? "Resolution note (what happened?)" : "Why is this a false alarm?") ?? null;',
-     'const note = await ask(act === "tp" ? "What happened? (resolution note)" : "Why is this a false alarm?");')
-swap('const reason = prompt(engaged ? "Reason for lifting the lockdown:" : "Reason for locking the building down:");',
-     'const reason = await ask(engaged ? "Reason for lifting the lockdown" : "Reason for locking the building down");')
 swap('    if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {});\n', "")
 swap('''    if ("Notification" in window && Notification.permission === "granted" && ["critical", "high"].includes(a.severity)) {
       try { new Notification(`OJO Sentinel: ${a.title}`, { body: a.detail }); } catch (_) {}
@@ -146,11 +148,14 @@ swap('''    $("#who").textContent''', '''    document.dispatchEvent(new CustomEv
     $("#who").textContent''')
 
 # In-page replacement for prompt(), which the artifact viewer blocks.
-swap("  // ------------------------------------------------------------------ auth\n", '''  function ask(label) {
+swap('''  function ask(label, value = "") {
+    return Promise.resolve(window.prompt(label, value));
+  }
+''', '''  function ask(label, value = "") {
     return new Promise((resolve) => {
       const box = $("#ask"), input = $("#ask-input");
       $("#ask-label").textContent = label;
-      input.value = "";
+      input.value = value;
       box.hidden = false;
       setTimeout(() => input.focus(), 0);
       const done = (v) => { box.hidden = true; $("#ask-form").onsubmit = null; $("#ask-cancel").onclick = null; resolve(v); };
@@ -158,8 +163,6 @@ swap("  // ------------------------------------------------------------------ au
       $("#ask-cancel").onclick = () => done(null);
     });
   }
-
-  // ------------------------------------------------------------------ auth
 ''')
 
 # Replace the Leaflet map (tiles can't load inside an artifact) with a drawn SVG map.
@@ -257,6 +260,8 @@ SCENARIOS = [
     ("honeypot", "Hacker takes the bait", "Systems"),
     ("phone_spoof", "Driver fakes phone location", "Fleet"),
     ("night_intrusion", "Stranger loitering at loading bay", "Lagos"),
+    ("supplier_pin_inactive", "Bill from a deregistered supplier", "Tax"),
+    ("sales_underreported", "Storekeeper under-reports sales", "Tax"),
 ]
 panel = '''
   <aside id="demo-panel" class="demo-panel" data-collapsed="false" aria-label="Demo controls" hidden>
@@ -297,18 +302,23 @@ PANEL_JS = r'''
   document.addEventListener("demo:session", (e) => {
     role = e.detail;
     panel.hidden = !role;
+    syncLayout();
     document.querySelectorAll("[data-as]").forEach((b) => b.setAttribute("aria-pressed", String(!!role && b.dataset.as === role.username)));
   });
   document.querySelectorAll("[data-as]").forEach((b) => b.addEventListener("click", () => {
     if (role && b.dataset.as !== role.username) window.DEMO_LOGIN(b.dataset.as);
   }));
+  const wide = window.matchMedia("(min-width: 1200px)");
+  const syncLayout = () => document.body.classList.toggle("demo-open", !panel.hidden && panel.dataset.collapsed !== "true" && wide.matches);
+  if (wide.addEventListener) wide.addEventListener("change", syncLayout);
   const setCollapsed = (c) => {
     panel.dataset.collapsed = String(c);
+    syncLayout();
     $("#demo-toggle").textContent = c ? "Show" : "Hide";
     $("#demo-toggle").setAttribute("aria-expanded", String(!c));
   };
   $("#demo-toggle").addEventListener("click", () => setCollapsed(panel.dataset.collapsed !== "true"));
-  if (window.matchMedia("(max-width: 640px)").matches) setCollapsed(true);
+  if (!wide.matches) setCollapsed(true);
 
   async function fire(kind) {
     const created = await window.DEMO_TRIGGER(kind);
@@ -316,7 +326,7 @@ PANEL_JS = r'''
     if (!created.length) window.DEMO_TOAST(`${names[kind]}: no new alert this time.`);
     else if (!seen.length) window.DEMO_TOAST(`${names[kind]}: reported to the owner only. As the Nairobi manager you can't see it.`);
     else if (!seen.some((a) => a.severity === "critical")) window.DEMO_TOAST(`${names[kind]}: ${seen[0].title}`);
-    if (window.matchMedia("(max-width: 640px)").matches) setCollapsed(true);
+    if (!wide.matches) setCollapsed(true);
   }
   document.querySelectorAll("[data-scenario]").forEach((b) => b.addEventListener("click", () => fire(b.dataset.scenario)));
 

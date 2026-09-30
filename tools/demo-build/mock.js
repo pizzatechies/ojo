@@ -156,6 +156,10 @@
     for (const [ep, change] of Object.entries(patch)) {
       if (ep === ALERTS_EP || SKIP.includes(ep) || ep.startsWith("/api/audit")) continue;
       if (change.replace) {
+        if (ep === "/api/finance/overview" && db[ep]) {
+          db[ep].compliance = clone(change.replace.compliance);
+          continue;
+        }
         if (ep === "/api/money/summary" && db[ep]) {
           const old = db[ep];
           const recs = [...change.replace.reconciliations.filter((r) => !old.reconciliations.some((o) => o.id === r.id)).map((r) => stamp({ ...r, id: ++S.nextId })), ...old.reconciliations];
@@ -450,6 +454,11 @@
       await audit(u.username, "honeypot.token_created", t.label, { kind: t.kind });
       return { ...t, canary_url: ["url", "document"].includes(t.kind) ? `${location.origin}/t/${t.token}` : undefined };
     }
+    m = /^\/api\/finance\/obligations\/(\d+)\/pay$/.exec(path);
+    if (m && method === "POST") { need("owner", "ojo_management"); return await payObligation(u, +m[1], body.reference || ""); }
+    m = /^\/api\/finance\/licences\/(\d+)\/renew$/.exec(path);
+    if (m && method === "POST") { need("owner", "ojo_management"); return await renewLicence(u, +m[1], body.new_expiry); }
+    if (path === "/api/finance/sales-reports" && method === "POST") return await salesReport(u, body);
     if (method === "GET") {
       const key = path + (u0.search || "");
       const db = S.db[role];
@@ -458,6 +467,87 @@
       if (role === "manager") throw httpError(403, `role '${u.role}' not permitted`);
     }
     throw httpError(404, "Not available in the demo");
+  }
+
+  // ------------------------------------------------------------------ finance actions
+
+  function rescore(ov) {
+    const c = ov.compliance;
+    c.score = Math.max(0, 100 - c.items.reduce((t, i) => t + i.points, 0));
+    c.grade = c.score >= 85 ? "good" : c.score >= 60 ? "at risk" : "critical";
+  }
+  function resolveWhere(pred, note) {
+    for (const a of S.alerts) {
+      if (a.status !== "resolved" && pred(a)) {
+        Object.assign(a, { status: "resolved", resolved_by: "system", resolution_note: note, updated_at: DEMO.iso() });
+        emit({ topic: "alert.updated", data: a });
+      }
+    }
+  }
+  async function payObligation(u, id, ref) {
+    const ov = S.db.owner["/api/finance/overview"];
+    const L = ov.liability;
+    const row = L.obligations.find((r) => r.id === id);
+    if (!row) throw httpError(404, "obligation not found");
+    L.obligations = L.obligations.filter((r) => r.id !== id);
+    L.total_outstanding = Math.round((L.total_outstanding - row.outstanding) * 100) / 100;
+    L.total_exposure = Math.round((L.total_exposure - (row.total_exposure || row.outstanding)) * 100) / 100;
+    const t = L.by_tax_type.find((x) => x.tax_type === row.tax_type);
+    if (t) t.outstanding = Math.max(0, Math.round((t.outstanding - row.outstanding) * 100) / 100);
+    const label = row.tax_type === "instalment_tax" ? row.description : `${row.label} ${row.period}`;
+    ov.compliance.items = ov.compliance.items.filter((i) => !i.text.startsWith(label));
+    rescore(ov);
+    const pay = S.db.owner["/api/finance/payroll"];
+    if (pay && pay.period === row.period) {
+      for (const r of pay.remittances) if (r.tax_type === row.tax_type) Object.assign(r, { remitted: r.deducted, variance: 0, status: row.status === "overdue" ? "paid_late" : "paid" });
+    }
+    if (row.tax_type === "instalment_tax") {
+      const n = +String(row.reference).split("-")[1];
+      const T = ov.corporate_tax;
+      const sch = T.schedule.find((x) => x.instalment === n);
+      if (sch) { sch.paid += row.outstanding; sch.status = row.status === "overdue" ? "paid_late" : "paid"; }
+      T.instalments_paid = Math.round((T.instalments_paid + row.outstanding) * 100) / 100;
+      T.shortfall = Math.max(0, Math.round((T.instalments_required_to_date - T.instalments_paid) * 100) / 100);
+      if (!T.shortfall) resolveWhere((a) => a.rule === "instalment_shortfall", "Instalments up to date.");
+    }
+    resolveWhere((a) => a.evidence && a.evidence.obligation === id, `Paid (${ref || "no reference"}).`);
+    await audit(u.username, "tax.paid", `${row.tax_type}:${row.period}:${row.reference}`, { amount: row.outstanding, ref });
+    return { ...row, outstanding: 0, status: "paid" };
+  }
+  async function renewLicence(u, id, newExpiry) {
+    const ov = S.db.owner["/api/finance/overview"];
+    const lic = ov.licences.find((l) => l.id === id);
+    if (!lic || !newExpiry) throw httpError(422, "Enter the new expiry date as YYYY-MM-DD.");
+    const days = Math.round((Date.parse(newExpiry) - DEMO.now()) / 86400000);
+    if (!(days > 0)) throw httpError(422, "the new expiry date must be in the future");
+    Object.assign(lic, { expires_on: newExpiry, days_left: days, status: days <= 60 ? "renew_soon" : "valid", breach_logged_on: null });
+    ov.licences.sort((a, b) => a.days_left - b.days_left);
+    ov.compliance.items = ov.compliance.items.filter((i) => !i.text.startsWith(lic.name));
+    rescore(ov);
+    resolveWhere((a) => a.evidence && a.evidence.licence === id, `Renewed to ${newExpiry}.`);
+    await audit(u.username, "licence.renewed", lic.name, { new_expiry: newExpiry });
+    return lic;
+  }
+  async function salesReport(u, b) {
+    if (!["manager", "storekeeper"].includes(u.role) && !ADMIN.includes(u.role)) throw httpError(403, "not permitted");
+    const units = (S.db.owner._sales_units_nbo_7d || {})[b.sku] || 0;
+    const product = (S.db.owner["/api/products"] || []).find((p) => p.sku === b.sku) || { name: b.sku, unit_price: 0 };
+    const gap = units - (+b.reported_units || 0);
+    const flagged = Math.abs(gap) > Math.max(2, 0.02 * Math.max(units, 1));
+    if (flagged) {
+      const value = Math.abs(gap) * product.unit_price;
+      const vat = value * 16 / 116;
+      const k = (n) => Math.round(n).toLocaleString("en-US");
+      addAlert({ rule: "sales_report_mismatch", pillar: "finance", severity: "high", store_id: 1, subject: u.full_name,
+        title: gap > 0 ? `${u.full_name} reported ${b.reported_units} ${product.name} sold; the system counted ${units}`
+                       : `${u.full_name} reported ${-gap} more ${product.name} sold than the system recorded`,
+        detail: gap > 0 ? `${gap} units (KES ${k(value)}) sold but missing from the report: the cash is unaccounted for, and if revenue is declared from these figures, VAT of KES ${k(vat)} goes undeclared.`
+                        : `Sales of KES ${k(value)} claimed without till records or eTIMS invoices.`,
+        owner_direct: true, audience: ["owner", "ojo_management"], confidence: 1, mode: "day", live_feed_url: null,
+        evidence: { reported: +b.reported_units, system: units, gap }, created_at: 1, updated_at: 1 });
+    }
+    await audit(u.username, "sales.reported", `NBO-01/${b.sku}`, { reported: +b.reported_units, system: units });
+    return { flagged, system_units: units, reported_units: +b.reported_units };
   }
 
   const realFetch = window.fetch.bind(window);

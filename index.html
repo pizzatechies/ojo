@@ -84,14 +84,15 @@ section { padding-block: clamp(64px, 9vw, 120px); }
 
 /* nav */
 .nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: color-mix(in srgb, var(--night) 88%, transparent); backdrop-filter: blur(10px); color: var(--night-text); border-bottom: 1px solid var(--night-line); }
-.nav .wrap { display: flex; align-items: center; gap: 24px; min-height: 64px; flex-wrap: wrap; }
+.nav .wrap { display: flex; align-items: center; gap: 24px; min-height: 64px; flex-wrap: nowrap; }
+.nav .btn { white-space: nowrap; }
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
 .brand b { font-family: var(--font-display); font-stretch: 125%; letter-spacing: .14em; font-size: 16px; }
 .nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 15px; }
 .nav-links a { text-decoration: none; color: var(--night-muted); }
 .nav-links a:hover { color: var(--night-text); }
 .nav .btn { padding: 9px 16px; font-size: 14px; }
-@media (max-width: 860px) { .nav-links { display: none; } .nav .btn { margin-left: auto; } }
+@media (max-width: 1060px) { .nav-links { display: none; } .nav .btn { margin-left: auto; } }
 @media (max-width: 480px) { .nav .wrap { gap: 10px; flex-wrap: nowrap; } .brand b { font-size: 14px; letter-spacing: .1em; } .nav .btn { padding: 8px 12px; font-size: 13px; white-space: nowrap; } .nav .btn .arrow { display: none; } }
 
 /* hero (a command-centre band) */
@@ -175,6 +176,35 @@ section { padding-block: clamp(64px, 9vw, 120px); }
 .ledger .gold { color: var(--gold-bright); }
 .ledger .ok { color: var(--ok); }
 
+/* tax & finance */
+.tax-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 5vw, 72px); align-items: start; }
+@media (max-width: 960px) { .tax-grid { grid-template-columns: 1fr; } }
+.kicker { font-family: var(--font-display); font-stretch: 112%; font-weight: 700; font-size: 18px; color: var(--gold); margin-top: 18px; }
+.calendar { background: var(--night); color: var(--night-text); border-radius: 14px; border: 1px solid var(--night-line); overflow: hidden; min-width: 0; }
+.calendar-head { padding: 12px 18px; border-bottom: 1px solid var(--night-line); color: var(--night-muted); font-family: var(--font-mono); font-size: 12px; display: flex; justify-content: space-between; gap: 12px; }
+.calendar ol { list-style: none; margin: 0; padding: 6px 0; }
+.calendar li { display: grid; grid-template-columns: 76px 1fr auto; gap: 14px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--night-line); }
+.calendar li:last-child { border-bottom: 0; }
+.calendar .date { font-family: var(--font-mono); font-size: 13px; color: var(--night-muted); line-height: 1.3; }
+.calendar .date b { display: block; color: var(--night-text); font-size: 20px; font-weight: 500; }
+.calendar .what { font-size: 15px; line-height: 1.35; }
+.calendar .what small { display: block; color: var(--night-muted); font-size: 12.5px; }
+.calendar .count { font-family: var(--font-mono); font-size: 11.5px; padding: 3px 8px; border-radius: 4px; white-space: nowrap; border: 1px solid var(--night-line); color: var(--night-muted); }
+.calendar .count.soon { border-color: var(--gold-bright); color: var(--gold-bright); }
+.calendar .count.late { background: var(--alert-bright); border-color: var(--alert-bright); color: #fff; }
+.tax-caps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-top: 56px; }
+.tax-caps div { background: var(--panel); padding: 22px; display: grid; gap: 6px; align-content: start; }
+.tax-caps p { color: var(--muted); font-size: 14.5px; }
+.tax-caps .mono { font-size: 11.5px; color: var(--gold); letter-spacing: .06em; }
+@media (max-width: 960px) { .tax-caps { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .tax-caps { grid-template-columns: 1fr; } .calendar li { grid-template-columns: 60px 1fr; } .calendar .count { grid-column: 2; justify-self: start; } }
+.misses { margin-top: 56px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: clamp(24px, 4vw, 56px); align-items: start; }
+@media (max-width: 860px) { .misses { grid-template-columns: 1fr; } }
+.misses ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.misses li { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 22px 1fr; gap: 12px; }
+.misses li::before { content: "→"; font-family: var(--font-mono); color: var(--gold); }
+.fin-shot { margin-top: 56px; }
+
 /* stories */
 .stories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 @media (max-width: 960px) { .stories { grid-template-columns: 1fr; } }
@@ -233,8 +263,9 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
     <a class="brand" href="#top" aria-label="OJO Sentinel home"><span class="eye"></span><b>OJO SENTINEL</b></a>
     <nav class="nav-links" aria-label="Sections">
       <a href="#capabilities">Capabilities</a>
-      <a href="#truth">No one can hide it</a>
-      <a href="#connects">Works with what you have</a>
+      <a href="#truth">Governance</a>
+      <a href="#tax">Tax &amp; KRA</a>
+      <a href="#connects">Integrations</a>
       <a href="#protects">What it protects</a>
     </nav>
     <a class="btn btn-gold" href="demo/">Try the live demo <span class="arrow">→</span></a>
@@ -247,7 +278,7 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
       <div>
         <p class="eyebrow" style="color:var(--gold-bright)">OJO Stores Management presents</p>
         <h1 style="margin-top:18px">We see everything <em>they ignore.</em></h1>
-        <p class="lede">OJO Sentinel watches your stock, your cash, your people, your deliveries and your systems. It tells you, the owner, what is really happening in every store, the moment it happens. No manager can hide it from you.</p>
+        <p class="lede">OJO Sentinel watches your stock, your cash, your people, your deliveries, your systems and your tax obligations. It tells you, the owner, what is really happening in every store, the moment it happens. No manager can hide it from you.</p>
         <div class="hero-cta">
           <a class="btn btn-gold" href="demo/">Try the live demo <span class="arrow">→</span></a>
           <a class="btn btn-line" href="#capabilities">See what it watches</a>
@@ -399,6 +430,58 @@ prev  41b7d2…0c9d   sha-256</span></pre>
     </div>
   </section>
 
+  <section id="tax" aria-labelledby="tax-title">
+    <div class="wrap">
+      <div class="tax-grid">
+        <div>
+          <p class="eyebrow">Financial &amp; Tax Intelligence</p>
+          <h2 id="tax-title" style="margin-top:16px">You will never owe KRA without knowing it first.</h2>
+          <p class="lede" style="margin-top:20px">A business doesn't only bleed through theft. It bleeds through missed tax deadlines, lapsed licences and accounting gaps that nobody catches until the penalties arrive. OJO Sentinel connects your sales, payroll and purchases to KRA's iTax and eTIMS, and shows you what you owe, when, and whether you're compliant, before it becomes a problem.</p>
+          <p class="kicker">We don't just guard your business. We guard your money.</p>
+        </div>
+        <div class="calendar" aria-label="Upcoming KRA and statutory deadlines">
+          <div class="calendar-head"><span>YOUR TAX CALENDAR</span><span id="cal-today"></span></div>
+          <ol id="calendar">
+            <li><span class="date"><b>9</b>next month</span><span class="what">PAYE, SHIF, NSSF &amp; Housing Levy<small>for this month's payroll</small></span><span class="count">monthly</span></li>
+            <li><span class="date"><b>20</b>next month</span><span class="what">VAT return &amp; payment<small>pre-filled from your eTIMS sales</small></span><span class="count">monthly</span></li>
+            <li><span class="date"><b>20</b>Apr · Jun · Sep · Dec</span><span class="what">Instalment tax<small>25% of this year's estimated corporate tax</small></span><span class="count">quarterly</span></li>
+            <li><span class="date"><b>5</b>working days</span><span class="what">Withholding tax<small>after paying rent, fees or contractors</small></span><span class="count">per payment</span></li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="tax-caps">
+        <div><span class="mono">eTIMS</span><h3>Every sale invoiced to KRA</h3><p>Each sale gets a KRA-compliant electronic invoice with its control-unit number, time stamp and QR code, without anyone lifting a finger.</p></div>
+        <div><span class="mono">PIN CHECK</span><h3>Suppliers verified before you pay</h3><p>An inactive KRA PIN or a missing eTIMS invoice puts the payment on hold, before it turns into a disallowed expense.</p></div>
+        <div><span class="mono">LIABILITY</span><h3>What you owe, every day</h3><p>Broken down by tax, period and due date. No waiting for month-end to find out.</p></div>
+        <div><span class="mono">DEADLINES</span><h3>Warnings at 14, 7 and 3 days</h3><p>Then on the day. If a payment is missed, you see the penalty and the interest growing each day.</p></div>
+        <div><span class="mono">VAT 16%</span><h3>VAT returns prepared for you</h3><p>A pre-filled return each month, with input VAT only from verified supplier invoices, checked against what you actually declared.</p></div>
+        <div><span class="mono">PAYROLL</span><h3>PAYE, SHIF, NSSF &amp; Housing Levy</h3><p>Computed for every employee, every payroll run, with any gap between what was deducted and what was remitted flagged.</p></div>
+        <div><span class="mono">WHT · CIT</span><h3>Withholding &amp; corporate tax</h3><p>Withholding certificates and deadlines, and a running estimate of this year's corporate tax at 30%, with the instalment position.</p></div>
+        <div><span class="mono">LICENCES</span><h3>No permit lapses quietly</h3><p>County permits, fire, health and sector certificates, with renewal alerts at 60, 30, 14 and 7 days.</p></div>
+        <div><span class="mono">ACCOUNTS</span><h3>Your books, always current</h3><p>Revenue by branch, expenses, margins, money owed both ways, a 90-day cash-flow forecast and a compliance score.</p></div>
+      </div>
+
+      <div class="misses">
+        <div>
+          <h3 style="font-size:24px">What OJO Sentinel covers that others miss</h3>
+          <p style="color:var(--muted); margin-top:10px">Most accounting software handles what you put into it. OJO Sentinel checks your operations against your books, and your books against KRA.</p>
+        </div>
+        <ul>
+          <li><span>A storekeeper reports 200 units sold, but the till counted 240. The 40-unit gap is flagged as missing cash and undeclared VAT at the same time.</span></li>
+          <li><span>A supplier's invoice arrives but their KRA PIN is inactive. Payment is held before it becomes a disallowed expense.</span></li>
+          <li><span>Sales grew this month but the VAT return didn't. The gap between your books and your filing is flagged as a compliance exposure.</span></li>
+          <li><span>One branch is losing money while the others make a profit. It's identified, with its cost structure, for your review.</span></li>
+          <li><span>PAYE was missed by three days. The penalty is logged and the interest is calculated daily until it's paid.</span></li>
+          <li><span>A county permit expired eight days ago. You were warned for 60 days, and the breach is on record until it's renewed.</span></li>
+        </ul>
+      </div>
+
+      <a class="shot fin-shot" href="demo/" style="display:block"><img src="assets/finance.jpg" width="2160" height="1350" loading="lazy" alt="OJO Sentinel Tax &amp; Finance dashboard showing amounts owed to KRA, SHA and NSSF, overdue items with penalties, a compliance score, VAT accruing and corporate tax estimate"></a>
+      <div class="shot-caption" style="color:var(--muted)"><span>The Tax &amp; Finance tab in the live demo.</span><a href="demo/" style="color:var(--gold)">Try it →</a></div>
+    </div>
+  </section>
+
   <section style="padding-top:0" aria-labelledby="stories-title">
     <div class="wrap">
       <div class="section-head">
@@ -488,6 +571,7 @@ prev  41b7d2…0c9d   sha-256</span></pre>
         <li>Four stores in Nairobi, Mombasa, Kampala and Lagos</li>
         <li>13 real incident types to trigger</li>
         <li>Owner and manager views side by side</li>
+        <li>KRA deadlines, VAT, PAYE and licences in the Tax &amp; Finance tab</li>
         <li>Runs in your browser, nothing to install</li>
       </ul>
     </div>
@@ -509,6 +593,31 @@ prev  41b7d2…0c9d   sha-256</span></pre>
   });
   tick(); setInterval(tick, 20000);
 
+  // Tax calendar: count down to the real next deadlines.
+  (() => {
+    const tz = "Africa/Nairobi";
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()).split("-").map(Number);
+    const today = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    const days = (d) => Math.round((d - today) / 86400000);
+    const nextDay = (day) => { const d = new Date(Date.UTC(parts[0], parts[1] - 1, day)); if (d <= today) d.setUTCMonth(d.getUTCMonth() + 1); return d; };
+    const inst = [3, 5, 8, 11].map((m) => new Date(Date.UTC(parts[0], m, 20))).find((d) => d >= today) || new Date(Date.UTC(parts[0] + 1, 3, 20));
+    const fmtM = (d) => d.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
+    const rows = [
+      [nextDay(9), "PAYE, SHIF, NSSF &amp; Housing Levy", "for last month's payroll"],
+      [nextDay(20), "VAT return &amp; payment", "pre-filled from your eTIMS sales"],
+      [inst, "Instalment tax", "25% of this year's estimated corporate tax"],
+    ].sort((a, b) => a[0] - b[0]);
+    const el = document.getElementById("calendar");
+    if (!el) return;
+    const li = rows.map(([d, what, sub]) => {
+      const n = days(d);
+      return `<li><span class="date"><b>${d.getUTCDate()}</b>${fmtM(d)}</span><span class="what">${what}<small>${sub}</small></span><span class="count ${n <= 7 ? "soon" : ""}">in ${n} day${n === 1 ? "" : "s"}</span></li>`;
+    }).join("");
+    el.innerHTML = li + `<li><span class="date"><b>5</b>work days</span><span class="what">Withholding tax<small>after paying rent, fees or contractors</small></span><span class="count">per payment</span></li>`;
+    const t = document.getElementById("cal-today");
+    if (t) t.textContent = "TODAY " + today.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase();
+  })();
+
   // The hero feed: real alert text from the OJO Sentinel engines, arriving one at a time.
   const feed = document.getElementById("feed");
   if (!feed || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -521,6 +630,9 @@ prev  41b7d2…0c9d   sha-256</span></pre>
     ["critical", "EAT · MBA-01", "Possible coordinated theft at OJO Stores Mombasa Nyali", "Refund spree, missing stock and a false count within 3 hours."],
     ["high", "FLEET", "Driver's phone location could not be verified", "Mock-location app active; GPS 81.7 km from network location."],
     ["high", "EAT · NBO-01", "Zawadi Mutua entered restricted area: Stockroom", "No stockroom clearance on file."],
+    ["critical", "KRA", "PAYE for last month is 3 days overdue", "Penalty KES 10,000; interest accruing daily until paid."],
+    ["high", "KRA", "VAT return declares less in sales than the books", "18% short. File an amended return."],
+    ["critical", "NBO-01", "Single Business Permit expired 8 days ago", "Nairobi City County. Flagged until renewal is recorded."],
   ];
   let i = 0;
   const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

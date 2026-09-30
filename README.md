@@ -2,7 +2,7 @@
 
 **We See Everything They Ignore.**
 
-This repository hosts the public website for **OJO Sentinel**, the AI-powered business-intelligence and security platform from OJO Stores Management, plus an interactive demo of the owner's command centre.
+This repository hosts the public website for **OJO Sentinel**, the AI-powered business-intelligence and security platform from OJO Stores Management, plus an interactive demo of the owner's command centre. The site and demo cover security and the Financial & Tax Intelligence module: KRA iTax/eTIMS, VAT, PAYE, SHIF, NSSF, Housing Levy, licences and accounting.
 
 | Path | What it is |
 |---|---|

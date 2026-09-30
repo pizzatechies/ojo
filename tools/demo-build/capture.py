@@ -18,6 +18,8 @@ class FakeDT(_real):
         return _real.now(tz) + OFFSET
 models.datetime = FakeDT
 modes.datetime = FakeDT
+import ojo_sentinel.finance.rates as frates  # noqa: E402
+frates.datetime = FakeDT
 
 import logging; logging.disable(logging.WARNING)
 from fastapi.testclient import TestClient
@@ -29,7 +31,7 @@ from ojo_sentinel.models import Store, Product, Alert
 from ojo_sentinel import alerts as alert_engine
 from ojo_sentinel.engines import geo
 
-app = create_app(Settings(database_url="sqlite://", seed_demo=True))
+app = create_app(Settings(database_url="sqlite://", seed_demo=True, finance_scan_minutes=0))
 db = app.state.db
 c = TestClient(app)
 def tok(u):
@@ -80,15 +82,21 @@ with db.session() as s:
     for _ in range(3): alert_engine.learn(s, "loitering", "false_positive")
     for _ in range(4): alert_engine.learn(s, "stock_discrepancy", "true_positive")
     for _ in range(2): alert_engine.learn(s, "late_arrival", "false_positive")
+from ojo_sentinel.finance import run_scan, accounting as facc  # noqa: E402
+with db.session() as s:
+    run_scan(s)
 
 OWNER_EP = ["/api/dashboard", "/api/stores", "/api/alerts?limit=500", "/api/inventory/counts?flagged=true&limit=30",
             "/api/shipments", "/api/attendance", "/api/employees", "/api/assets", "/api/phones", "/api/modes",
             "/api/cameras", "/api/detections?limit=40", "/api/honeypot/tokens", "/api/honeypot/hits",
             "/api/cyber/email/scans", "/api/cyber/logins", "/api/money/summary", "/api/money/cashiers",
-            "/api/money/benford", "/api/ai/risk", "/api/ai/learning", "/api/audit?limit=200", "/api/map"]
+            "/api/money/benford", "/api/ai/risk", "/api/ai/learning", "/api/audit?limit=200", "/api/map",
+            "/api/products", "/api/finance/overview", "/api/finance/vat-return", "/api/finance/payroll",
+            "/api/finance/accounting/branches", "/api/finance/accounting/margins", "/api/finance/accounting/ap-ar",
+            "/api/finance/accounting/expenses"]
 MGR_EP = ["/api/dashboard", "/api/stores", "/api/inventory/counts?flagged=true&limit=30", "/api/shipments",
           "/api/attendance", "/api/employees", "/api/cameras", "/api/detections?limit=40", "/api/modes",
-          "/api/money/summary", "/api/map"]
+          "/api/money/summary", "/api/map", "/api/products"]
 
 def snapshot():
     st = stores()
@@ -102,6 +110,14 @@ def snapshot():
 # keep the captured logins list free of the capture's own sign-ins noise? it's realistic; keep.
 baseline = snapshot()
 baseline["owner"]["/api/ai/scan"] = c.post("/api/ai/scan", headers=OWNER).json()
+with db.session() as s:
+    nbo_st = s.scalars(select(Store).where(Store.code == "NBO-01")).one()
+    today = frates.kenya_today()
+    units = {}
+    for tx in facc._sales(s, today - timedelta(days=6), today + timedelta(days=1), [nbo_st.id]):
+        for i in tx.items or []:
+            units[i["sku"]] = units.get(i["sku"], 0) + (-1 if tx.kind == "refund" else 1) * int(i.get("quantity", 1))
+baseline["owner"]["_sales_units_nbo_7d"] = units
 baseline = json.loads(json.dumps(baseline))  # plain JSON
 T0 = FakeDT.now(timezone.utc).isoformat()
 
@@ -114,11 +130,12 @@ SCENARIOS = [
     ("weapon", "NBO-01"), ("stock_theft", "NBO-01"), ("storekeeper_lie", "NBO-01"), ("restricted", "NBO-01"),
     ("tamper", "MBA-01"), ("off_route", "NBO-01"), ("watchlist", "KLA-01"), ("honeypot", "NBO-01"),
     ("phishing", "NBO-01"), ("cash_short", "LOS-01"), ("phone_spoof", "NBO-01"), ("refund_spree", "MBA-01"),
-    ("night_intrusion", "LOS-01"),
+    ("night_intrusion", "LOS-01"), ("supplier_pin_inactive", "NBO-01"), ("sales_underreported", "NBO-01"),
 ]
 
 def key_of(ep, row):
     if "inventory?store_id" in ep and "sku" in row: return f"{row['store_id']}:{row['sku']}"
+    if ep.startswith("/api/finance") or ep == "/api/products": return row.get("id", json.dumps(row, sort_keys=True))
     if "attendance" in ep: return row.get("id")
     if "cashiers" in ep: return row.get("cashier")
     if "ai/risk" in ep: return row.get("subject")
