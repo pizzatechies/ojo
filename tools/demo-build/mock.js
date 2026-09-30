@@ -156,6 +156,10 @@
     for (const [ep, change] of Object.entries(patch)) {
       if (ep === ALERTS_EP || SKIP.includes(ep) || ep.startsWith("/api/audit")) continue;
       if (change.replace) {
+        if ((ep === "/api/autonomy/overview" || ep === "/api/expiry") && db[ep]) {
+          mergeChanges(db[ep], change.replace, FX.baseline[role][ep]);
+          continue;
+        }
         if (ep === "/api/finance/overview" && db[ep]) {
           db[ep].compliance = clone(change.replace.compliance);
           continue;
@@ -183,6 +187,32 @@
           if (base === "/api/inventory/counts" && r.source === "sensor" && r.flagged && r.variance < 0 && role === "owner") S.missingExtra += -r.variance;
         }
       }
+    }
+  }
+
+  // Scenarios were captured one at a time from the same baseline, so merge only what each one changed:
+  // rows that differ from the baseline are upserted by key, leaving earlier scenarios' effects in place.
+  const ROW_KEY = (k, r) => (k === "days" || k === "stores" ? r.store_id : k === "devices" ? r.code : r.id);
+  function mergeChanges(cur, next, base) {
+    for (const [k, v] of Object.entries(next)) {
+      const b = base ? base[k] : undefined;
+      if (JSON.stringify(v) === JSON.stringify(b)) continue;
+      if (Array.isArray(v) && Array.isArray(cur[k])) {
+        const rows = cur[k];
+        const baseRows = new Set((b || []).map((r) => JSON.stringify(r)));
+        for (const r of v.slice().reverse()) {
+          if (baseRows.has(JSON.stringify(r))) continue;
+          const i = rows.findIndex((x) => ROW_KEY(k, x) === ROW_KEY(k, r));
+          if (i >= 0) rows[i] = clone(r); else rows.unshift(clone(r));
+        }
+      } else if (v && typeof v === "object" && cur[k] && typeof cur[k] === "object") mergeChanges(cur[k], v, b);
+      else cur[k] = clone(v);
+    }
+    if (cur.batches) {  // /api/expiry totals follow the merged batches
+      cur.batches = cur.batches.filter((r) => r.quantity > 0);
+      cur.expired_units = cur.batches.filter((r) => r.status === "expired").reduce((t, r) => t + r.quantity, 0);
+      cur.expiring_units = cur.batches.filter((r) => r.status === "expiring").reduce((t, r) => t + r.quantity, 0);
+      cur.value_at_risk = Math.round(cur.batches.filter((r) => r.status !== "ok").reduce((t, r) => t + r.value_at_risk, 0) * 100) / 100;
     }
   }
 
@@ -454,6 +484,9 @@
       await audit(u.username, "honeypot.token_created", t.label, { kind: t.kind });
       return { ...t, canary_url: ["url", "document"].includes(t.kind) ? `${location.origin}/t/${t.token}` : undefined };
     }
+    m = /^\/api\/alerts\/(\d+)\/dispatch$/.exec(path);
+    if (m && method === "POST") { need("owner", "ojo_management", "manager", "security"); return await dispatch(u, +m[1], body.note || ""); }
+    if (path === "/api/expiry/dispose" && method === "POST") { need("owner", "ojo_management", "manager", "storekeeper", "security"); return await dispose(u, body); }
     m = /^\/api\/finance\/obligations\/(\d+)\/pay$/.exec(path);
     if (m && method === "POST") { need("owner", "ojo_management"); return await payObligation(u, +m[1], body.reference || ""); }
     m = /^\/api\/finance\/licences\/(\d+)\/renew$/.exec(path);
@@ -548,6 +581,62 @@
     }
     await audit(u.username, "sales.reported", `NBO-01/${b.sku}`, { reported: +b.reported_units, system: units });
     return { flagged, system_units: units, reported_units: +b.reported_units };
+  }
+
+  // ------------------------------------------------------------------ autonomous actions
+
+  async function dispatch(u, id, note) {
+    const a = S.alerts.find((x) => x.id === id);
+    if (!a || !canView(u, a)) throw httpError(404, "alert not found");
+    const ov = S.db.owner["/api/autonomy/overview"];
+    const targets = ov.contacts.filter((c) => c.role === "security" && c.store_id === a.store_id);
+    if (!targets.length) throw httpError(409, "no security or police contact is set up for this store");
+    const store = S.db.owner["/api/stores"].find((s) => s.id === a.store_id) || { name: "the incident location" };
+    for (const c of targets) {
+      ov.outreach.unshift({ id: ++S.nextId, channel: "dispatch", to: c.name, phone: c.phone, reason: "dispatch",
+        message: `OJO Sentinel dispatch: ${a.title} at ${store.name}. ${note}`.trim(), alert_id: a.id, status: "sent", at: DEMO.iso() });
+      await audit("ojo-sentinel", "outreach.dispatch", c.name, { reason: "dispatch", status: "sent", alert_id: a.id });
+    }
+    a.evidence = { ...(a.evidence || {}), dispatched_by: u.username, dispatched_at: DEMO.iso() };
+    await audit(u.username, "security.dispatched", `alert:${a.id}`, { to: targets.map((c) => c.name) });
+    return { dispatched_to: targets.map((c) => c.name), status: "sent", live_feed_url: a.live_feed_url };
+  }
+
+  async function dispose(u, b) {
+    if (!ADMIN.includes(u.role) && u.store_id !== b.store_id) throw httpError(403, "not your store");
+    const qty = Math.floor(+b.quantity);
+    if (!(qty > 0)) throw httpError(422, "quantity must be positive");
+    const views = ["owner", "manager"].map((r) => S.db[r]["/api/expiry"]).filter(Boolean);
+    const rows = S.db.owner["/api/expiry"].batches.filter((r) => r.store_id === b.store_id && r.sku === b.sku);
+    const expired = rows.filter((r) => r.status === "expired").reduce((t, r) => t + r.quantity, 0);
+    const excess = Math.max(0, qty - expired);
+    const product = (S.db.owner["/api/products"] || []).find((p) => p.sku === b.sku) || { name: b.sku, unit_cost: 0 };
+    for (const v of views) {
+      let left = qty;
+      const mine = v.batches.filter((r) => r.store_id === b.store_id && r.sku === b.sku).sort((x, y) => (x.status === "expired" ? -1 : 0) - (y.status === "expired" ? -1 : 0) || x.days_left - y.days_left);
+      for (const r of mine) {
+        const n = Math.min(left, r.quantity);
+        r.quantity -= n; r.disposed_qty += n; left -= n;
+        r.likely_unsold = Math.min(r.likely_unsold, r.quantity);
+        r.value_at_risk = Math.round(r.likely_unsold * product.unit_cost * 100) / 100;
+      }
+      v.batches = v.batches.filter((r) => r.quantity > 0);
+      v.expired_units = v.batches.filter((r) => r.status === "expired").reduce((t, r) => t + r.quantity, 0);
+      v.expiring_units = v.batches.filter((r) => r.status === "expiring").reduce((t, r) => t + r.quantity, 0);
+      v.value_at_risk = Math.round(v.batches.filter((r) => r.status !== "ok").reduce((t, r) => t + r.value_at_risk, 0) * 100) / 100;
+    }
+    let alert = null;
+    if (excess) {
+      alert = addAlert({ rule: "disposal_exceeds_expired", pillar: "inventory", severity: "high", store_id: b.store_id, subject: u.full_name,
+        title: `${u.full_name} disposed of ${qty} × ${product.name} but only ${expired} had expired`,
+        detail: `${excess} unit(s) (≈${Math.round(excess * product.unit_cost).toLocaleString("en-US")} at cost) written off as expired while still in date. Good stock written off as expired is a common way to steal it.`,
+        owner_direct: true, audience: ["owner", "ojo_management"], confidence: 1, mode: "day", live_feed_url: null,
+        evidence: { sku: b.sku, disposed: qty, expired_on_hand: expired, excess }, created_at: 1, updated_at: 1 });
+    } else {
+      resolveWhere((a) => a.rule === "expired_on_hand" && a.store_id === b.store_id && a.subject === b.sku && !rows.some((r) => r.status === "expired" && r.quantity > 0), "Expired stock disposed of.");
+    }
+    await audit(u.username, "stock.expiry_disposal", `${b.sku}`, { quantity: qty, expired_on_hand: expired });
+    return { disposed: qty, expired_on_hand: expired, excess, alert_id: alert ? alert.id : null };
   }
 
   const realFetch = window.fetch.bind(window);

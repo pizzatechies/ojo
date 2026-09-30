@@ -31,14 +31,18 @@ from ojo_sentinel.models import Store, Product, Alert
 from ojo_sentinel import alerts as alert_engine
 from ojo_sentinel.engines import geo
 
-app = create_app(Settings(database_url="sqlite://", seed_demo=True, finance_scan_minutes=0))
+app = create_app(Settings(database_url="sqlite://", seed_demo=True, finance_scan_minutes=0, autonomy_scan_minutes=0))
 db = app.state.db
+# Behave like a deployment with a voice/SMS gateway, so calls read "sent" (nothing listens on this port).
+from ojo_sentinel.config import settings as _settings  # noqa: E402
+_settings.call_webhook_url = "http://127.0.0.1:9/calls"
 c = TestClient(app)
 def tok(u):
     return {"Authorization": "Bearer " + c.post("/api/auth/login", json={"username": u, "password": "sentinel2026"}).json()["token"]}
 OWNER, MGR = tok("sirojo"), tok("store.nbo-01")
 
 sim = Simulator(db, seed=11, incident_rate=0)
+sim.rng.seed(11)
 for _ in range(45):
     sim.tick()
 
@@ -85,6 +89,19 @@ with db.session() as s:
 from ojo_sentinel.finance import run_scan, accounting as facc  # noqa: E402
 with db.session() as s:
     run_scan(s)
+# The simulator's heartbeats healed the planted device problems; put them back, then let the autonomy scan find them.
+from ojo_sentinel.autonomy import run_scan as autonomy_scan, infra  # noqa: E402
+from ojo_sentinel.autonomy.models import Device, ShiftReport  # noqa: E402
+with db.session() as s:
+    acc = s.scalars(select(Device).where(Device.code == "kla-01-acc")).one()
+    acc.status, acc.last_seen = "ok", models.utcnow() - timedelta(minutes=40)
+    infra.heartbeat(s, s.scalars(select(Device).where(Device.code == "mba-01-nvr")).one(), temperature_c=79.0)
+    autonomy_scan(s)
+with db.session() as s:
+    latest = {}
+    for r in s.scalars(select(ShiftReport).order_by(ShiftReport.generated_at)):
+        latest[r.store_id] = r.id
+REPORT_EP = [f"/api/autonomy/shift-reports/{i}" for i in latest.values()]
 
 OWNER_EP = ["/api/dashboard", "/api/stores", "/api/alerts?limit=500", "/api/inventory/counts?flagged=true&limit=30",
             "/api/shipments", "/api/attendance", "/api/employees", "/api/assets", "/api/phones", "/api/modes",
@@ -93,17 +110,19 @@ OWNER_EP = ["/api/dashboard", "/api/stores", "/api/alerts?limit=500", "/api/inve
             "/api/money/benford", "/api/ai/risk", "/api/ai/learning", "/api/audit?limit=200", "/api/map",
             "/api/products", "/api/finance/overview", "/api/finance/vat-return", "/api/finance/payroll",
             "/api/finance/accounting/branches", "/api/finance/accounting/margins", "/api/finance/accounting/ap-ar",
-            "/api/finance/accounting/expenses"]
+            "/api/finance/accounting/expenses", "/api/autonomy/overview", "/api/autonomy/report-vs-reality",
+            "/api/autonomy/shrinkage", "/api/expiry"]
 MGR_EP = ["/api/dashboard", "/api/stores", "/api/inventory/counts?flagged=true&limit=30", "/api/shipments",
           "/api/attendance", "/api/employees", "/api/cameras", "/api/detections?limit=40", "/api/modes",
-          "/api/money/summary", "/api/map", "/api/products"]
+          "/api/money/summary", "/api/map", "/api/products", "/api/autonomy/overview",
+          "/api/autonomy/report-vs-reality", "/api/expiry"]
 
 def snapshot():
     st = stores()
     out = {"owner": {}, "manager": {}}
-    for ep in OWNER_EP + [f"/api/inventory?store_id={x.id}" for x in st.values()]:
+    for ep in OWNER_EP + REPORT_EP + [f"/api/inventory?store_id={x.id}" for x in st.values()]:
         r = c.get(ep, headers=OWNER); assert r.status_code == 200, (ep, r.text); out["owner"][ep] = r.json()
-    for ep in MGR_EP + [f"/api/inventory?store_id={st['NBO-01'].id}"]:
+    for ep in MGR_EP + [f"/api/autonomy/shift-reports/{latest[st['NBO-01'].id]}", f"/api/inventory?store_id={st['NBO-01'].id}"]:
         r = c.get(ep, headers=MGR); assert r.status_code == 200, (ep, r.text); out["manager"][ep] = r.json()
     return out
 
@@ -131,6 +150,10 @@ SCENARIOS = [
     ("tamper", "MBA-01"), ("off_route", "NBO-01"), ("watchlist", "KLA-01"), ("honeypot", "NBO-01"),
     ("phishing", "NBO-01"), ("cash_short", "LOS-01"), ("phone_spoof", "NBO-01"), ("refund_spree", "MBA-01"),
     ("night_intrusion", "LOS-01"), ("supplier_pin_inactive", "NBO-01"), ("sales_underreported", "NBO-01"),
+    ("impersonation", "NBO-01"), ("fight", "NBO-01"), ("fall", "MBA-01"), ("crowd_surge", "NBO-01"),
+    ("silent_witness", "NBO-01"), ("dead_zone", "NBO-01"), ("asset_breach", "NBO-01"), ("cross_location", "NBO-01"),
+    ("expiry_disposal_fraud", "NBO-01"), ("short_delivery", "NBO-01"), ("power_cut", "KLA-01"),
+    ("link_down", "NBO-01"), ("device_hot", "NBO-01"),
 ]
 
 def key_of(ep, row):
@@ -140,6 +163,7 @@ def key_of(ep, row):
     if "cashiers" in ep: return row.get("cashier")
     if "ai/risk" in ep: return row.get("subject")
     if "ai/learning" in ep: return row.get("rule")
+    if "report-vs-reality" in ep: return f"{row['kind']}|{row['store']}|{row['at']}|{row['item']}"
     return row.get("id")
 
 def diff(before, after):

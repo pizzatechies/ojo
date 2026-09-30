@@ -95,6 +95,7 @@ html, body { background: var(--bg); color: var(--text); }
 .seg button { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 500; font-size: 13px; padding: 6px 8px; }
 .seg button[aria-pressed="true"] { background: var(--gold); color: var(--ink-on-color); border-color: transparent; font-weight: 700; }
 .scenarios { display: grid; gap: 6px; }
+.scenario-group { margin: 10px 0 6px; }
 .scenario { display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); font-weight: 500; font-size: 13px; padding: 7px 10px; }
 .scenario:hover { border-color: var(--gold); }
 .scenario small { color: var(--muted); white-space: nowrap; font-size: 11px; }
@@ -262,7 +263,22 @@ SCENARIOS = [
     ("night_intrusion", "Stranger loitering at loading bay", "Lagos"),
     ("supplier_pin_inactive", "Bill from a deregistered supplier", "Tax"),
     ("sales_underreported", "Storekeeper under-reports sales", "Tax"),
+    ("impersonation", "Cashier signs in as a colleague", "Nairobi"),
+    ("expiry_disposal_fraud", "Good stock written off as expired", "Nairobi"),
+    ("short_delivery", "Delivery signed off short", "Nairobi"),
+    ("fight", "Fight on the sales floor", "Nairobi"),
+    ("fall", "Customer falls and stays down", "Mombasa"),
+    ("crowd_surge", "Crowd surge at the entrance", "Nairobi"),
+    ("silent_witness", "Someone lingers — not yet an alert", "Nairobi"),
+    ("dead_zone", "Repeated trips to a camera blind spot", "Nairobi"),
+    ("asset_breach", "TV demo unit leaves its zone", "Nairobi"),
+    ("cross_location", "Face from a Mombasa incident appears", "Nairobi"),
+    ("power_cut", "Power cut", "Kampala"),
+    ("link_down", "Internet fails over to 4G", "Nairobi"),
+    ("device_hot", "Video recorder overheating", "Nairobi"),
 ]
+GROUP_BREAKS = {k: f'</div><h4 class="scenario-group">{h}</h4><div class="scenarios">' for k, h in
+                [("supplier_pin_inactive", "Tax &amp; finance"), ("impersonation", "Runs itself")]}
 panel = '''
   <aside id="demo-panel" class="demo-panel" data-collapsed="false" aria-label="Demo controls" hidden>
     <div class="demo-head"><b>Demo controls</b><button id="demo-toggle" class="small ghost" aria-expanded="true">Hide</button></div>
@@ -275,7 +291,8 @@ panel = '''
       </div>
       <div><h4>Set off an incident</h4>
         <div class="scenarios">''' + "".join(
-    f'<button class="scenario" data-scenario="{k}"><span>{label}</span><small>{where}</small></button>' for k, label, where in SCENARIOS) + '''</div>
+    (GROUP_BREAKS.get(k, "") +
+     f'<button class="scenario" data-scenario="{k}"><span>{label}</span><small>{where}</small></button>') for k, label, where in SCENARIOS) + '''</div>
       </div>
       <label class="toggle" for="demo-live"><input type="checkbox" id="demo-live" checked> Live sales &amp; moving vehicles</label>
       <label class="toggle" for="demo-auto"><input type="checkbox" id="demo-auto"> A random incident every 30 seconds</label>
@@ -323,7 +340,8 @@ PANEL_JS = r'''
   async function fire(kind) {
     const created = await window.DEMO_TRIGGER(kind);
     const seen = created.filter((a) => role && (["owner", "ojo_management"].includes(role.role) || ((a.audience || []).includes(role.role) && (a.store_id == null || a.store_id === role.store_id))));
-    if (!created.length) window.DEMO_TOAST(`${names[kind]}: no new alert this time.`);
+    if (kind === "silent_witness") window.DEMO_TOAST("Silent Witness started recording quietly. No alert, and staff see nothing. It's on the Autonomous tab.");
+    else if (!created.length) window.DEMO_TOAST(`${names[kind]}: no new alert this time.`);
     else if (!seen.length) window.DEMO_TOAST(`${names[kind]}: reported to the owner only. As the Nairobi manager you can't see it.`);
     else if (!seen.some((a) => a.severity === "critical")) window.DEMO_TOAST(`${names[kind]}: ${seen[0].title}`);
     if (!wide.matches) setCollapsed(true);
