@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OJO Sentinel ad: Nobody can hide it from you (15s, 9:16)</title>
+<link rel="stylesheet" href="ads.css">
+<style>
+  .stage { width: 1080px; height: 1920px; font-size: 40px; }
+  .notif { left: 70px; width: 940px; font-size: 38px; }
+  .time { font-family: var(--display); font-weight: 800; font-size: 150px; letter-spacing: -.02em; }
+  .btn { display: inline-block; border: 2px solid var(--line); border-radius: 18px; padding: 22px 40px; font-weight: 600; font-size: 42px; background: #1a222c; }
+  .stamp { font-family: var(--display); font-weight: 900; font-size: 88px; color: var(--alert); border: 10px solid var(--alert); border-radius: 20px; padding: 6px 30px; transform: rotate(-6deg); display: inline-block; }
+</style>
+</head>
+<body data-duration="15">
+<div class="stage" id="stage">
+  <!-- hook -->
+  <div class="abs center display" style="top:640px;font-size:110px;padding:0 60px" data-at="0 2.6" data-fx="up">“Everything’s fine, boss.”</div>
+  <div class="abs center muted" style="top:960px;font-size:46px" data-at="0.8 2.6" data-fx="up">Is it?</div>
+
+  <!-- lock screen with alerts arriving -->
+  <div class="abs center mono muted" style="top:120px;font-size:30px" data-at="2.6 10.1" data-fx="fade">Tuesday · the owner's phone</div>
+  <div class="abs center time" style="top:170px" data-at="2.6 10.1" data-fx="fade">10:58</div>
+  <div class="abs alert critical notif" style="top:420px" data-at="3.0 10.1" data-fx="down" data-dist="80">
+    <div class="meta"><span class="chip critical">critical</span><span class="chip owner">owner-direct</span><span>MBA-01</span></div>
+    <div class="t">Shipment tampered at Mtito Andei weighbridge</div><div class="d">Seal broken · weight −14.3%</div></div>
+  <div class="abs alert notif" style="top:690px" data-at="4.3 10.1" data-fx="down" data-dist="80">
+    <div class="meta"><span class="chip high">high</span><span class="chip owner">owner-direct</span><span>LOS-01</span></div>
+    <div class="t">Cash drawer R1 short KES 6,420</div><div class="d">Counted against the till, not against what anyone said</div></div>
+  <div class="abs alert notif" style="top:940px" data-at="5.6 10.1" data-fx="down" data-dist="80">
+    <div class="meta"><span class="chip high">high</span><span class="chip owner">owner-direct</span><span>NBO-01</span></div>
+    <div class="t">15 bars of soap “expired”. None had.</div><div class="d">Good stock written off as expired</div></div>
+  <div class="abs alert notif" style="top:1190px" data-at="6.9 10.1" data-fx="down" data-dist="80">
+    <div class="meta"><span class="chip high">high</span><span class="chip owner">owner-direct</span><span>MBA-01</span></div>
+    <div class="t">Cashier refunds 7× the business average</div><div class="d">Refund spree flagged by the behavioural AI</div></div>
+  <div class="abs center display" style="top:1500px;font-size:84px;padding:0 60px" data-at="8.2 10.1" data-fx="up">It isn't. <span class="gold">Now you know.</span></div>
+
+  <!-- the manager tries to close one -->
+  <div class="abs center display" style="top:360px;font-size:88px;padding:0 70px" data-at="10.1 13.0" data-fx="up">A manager tries to close the alert.</div>
+  <div class="abs center" style="top:760px" data-at="10.5 13.0" data-fx="up"><span class="btn" id="ackbtn">Close alert</span></div>
+  <div class="abs center" style="top:1000px" data-at="11.3 13.0" data-fx="pop" data-in="0.5"><span class="stamp">REFUSED</span></div>
+  <div class="abs center muted" style="top:1260px;font-size:46px;padding:0 90px" data-at="11.7 13.0" data-fx="up">…and the owner is told who tried.</div>
+
+  <!-- end card -->
+  <div class="abs brand" style="left:0;right:0;justify-content:center;top:560px;font-size:56px" data-at="13.0 15.5" data-fx="scale fade">
+    <span class="eye" style="width:84px;height:84px"><i style="width:32px;height:32px"></i></span><b>OJO SENTINEL</b></div>
+  <div class="abs center display" style="top:760px;font-size:112px;padding:0 50px" data-at="13.2 15.5" data-fx="up">No one can hide <span class="gold">the truth</span> from you.</div>
+  <div class="abs center" style="top:1240px;font-size:44px" data-at="13.6 15.5" data-fx="up">From <b class="gold">KES 10,000</b> a month</div>
+  <div class="abs center" style="top:1350px" data-at="13.9 15.5" data-fx="up"><span class="cta" style="font-size:40px">pizzatechies.github.io/ojo</span></div>
+</div>
+<script src="engine.js"></script>
+<script>
+  // The "Close alert" button is pressed just before the refusal lands.
+  const btn = document.getElementById("ackbtn");
+  AD.on((t) => {
+    const pressed = t > 11.0 && t < 11.35;
+    btn.style.transform = pressed ? "scale(0.94)" : "";
+    btn.style.background = pressed ? "#26303c" : "";
+  });
+</script>
+</body>
+</html>

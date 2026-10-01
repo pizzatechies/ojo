@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OJO Sentinel ad: Your business runs itself (15s, 9:16)</title>
+<link rel="stylesheet" href="ads.css">
+<style>
+  .stage { width: 1080px; height: 1920px; font-size: 40px; }
+  .line { left: 150px; top: 500px; width: 4px; background: linear-gradient(var(--gold), rgba(212,160,23,.1)); border-radius: 4px; }
+  .step { left: 110px; width: 900px; display: grid; grid-template-columns: 84px 1fr; gap: 30px; align-items: start; }
+  .dot { width: 84px; height: 84px; border-radius: 50%; background: var(--night-2); border: 4px solid var(--gold); display: grid; place-items: center;
+         font-family: var(--mono); font-weight: 600; font-size: 22px; color: var(--gold-2); }
+  .dot.red { border-color: var(--alert); color: var(--alert); }
+  .dot.ok { border-color: var(--ok); color: var(--ok); }
+  .step b { font-family: var(--display); font-weight: 800; font-size: 50px; display: block; line-height: 1.05; }
+  .step span { color: var(--muted); font-size: 34px; }
+  .step .clock { font-family: var(--mono); color: var(--gold-2); font-size: 28px; letter-spacing: .06em; }
+</style>
+</head>
+<body data-duration="15">
+<div class="stage" id="stage">
+  <div class="abs center display" style="top:620px;font-size:110px;padding:0 70px" data-at="0 2.3" data-fx="up">Who runs your store <span class="gold">when you're not there?</span></div>
+
+  <div class="abs mono" style="left:110px;top:230px;font-size:30px;color:var(--gold-2)" data-at="2.3 11.2" data-fx="fade">Autonomous Intelligence</div>
+  <div class="abs display" style="left:110px;top:290px;font-size:86px" data-at="2.3 11.2" data-fx="up">One day at NBO-01.</div>
+  <div class="abs line" id="line" data-at="2.4 11.2" data-fx="fade"></div>
+  <div class="abs step" style="top:500px" data-at="2.8 11.2" data-fx="left"><div class="dot ok">ON</div><div><div class="clock">08:02</div><b>Store opens itself</b><span>Owner notified. Alarm off.</span></div></div>
+  <div class="abs step" style="top:700px" data-at="3.9 11.2" data-fx="left"><div class="dot red">ID</div><div><div class="clock">08:07</div><b>Borrowed login refused</b><span>The face didn't match the credentials.</span></div></div>
+  <div class="abs step" style="top:900px" data-at="5.0 11.2" data-fx="left"><div class="dot">PWR</div><div><div class="clock">13:10</div><b>Power cut. Generator on.</b><span>Cameras never went dark.</span></div></div>
+  <div class="abs step" style="top:1100px" data-at="6.1 11.2" data-fx="left"><div class="dot">EXP</div><div><div class="clock">17:40</div><b>Flour expiring in 3 days</b><span>160 bags won't sell in time. Mark them down.</span></div></div>
+  <div class="abs step" style="top:1300px" data-at="7.2 11.2" data-fx="left"><div class="dot ok">DAY</div><div><div class="clock">20:05</div><b>Shift reconciled</b><span>Staff, stock, cash and incidents. 2 issues.</span></div></div>
+  <div class="abs step" style="top:1500px" data-at="8.3 11.2" data-fx="left"><div class="dot">ARM</div><div><div class="clock">20:06</div><b>Alarm armed for the night</b><span>Nobody had to remember.</span></div></div>
+
+  <div class="abs brand" style="left:0;right:0;justify-content:center;top:520px;font-size:56px" data-at="11.2 15.5" data-fx="scale fade">
+    <span class="eye" style="width:84px;height:84px"><i style="width:32px;height:32px"></i></span><b>OJO SENTINEL</b></div>
+  <div class="abs center display" style="top:720px;font-size:118px;padding:0 60px" data-at="11.4 15.5" data-fx="up">Your business runs itself.</div>
+  <div class="abs center display gold" style="top:1010px;font-size:86px;padding:0 60px" data-at="11.9 15.5" data-fx="up">You just watch it grow.</div>
+  <div class="abs center" style="top:1280px;font-size:42px" data-at="12.4 15.5" data-fx="up">Premium · <b class="gold">KES 50,000</b> a month</div>
+  <div class="abs center" style="top:1380px" data-at="12.7 15.5" data-fx="up"><span class="cta" style="font-size:40px">pizzatechies.github.io/ojo</span></div>
+</div>
+<script src="engine.js"></script>
+<script>
+  const line = document.getElementById("line");
+  AD.on((t, { clamp, easeIO }) => { line.style.height = `${1030 * easeIO(clamp((t - 2.6) / 6.2))}px`; });
+</script>
+</body>
+</html>

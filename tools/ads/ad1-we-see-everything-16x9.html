@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OJO Sentinel ad: We See Everything They Ignore (30s, 16:9)</title>
+<link rel="stylesheet" href="ads.css">
+<style>
+  .stage { width: 1920px; height: 1080px; font-size: 40px; }
+  .kicker { top: 120px; left: 140px; font-size: 26px; color: var(--gold-2); }
+  .h1 { font-size: 120px; }
+  .big-num { font-family: var(--display); font-weight: 900; font-size: 300px; line-height: .9; }
+  .say { font-size: 52px; font-weight: 600; }
+  .map { left: 900px; top: 150px; width: 880px; height: 780px; }
+  .face { width: 190px; height: 190px; border-radius: 50%; display: grid; place-items: center; font-family: var(--display); font-weight: 900; font-size: 72px; }
+  .stamp { font-family: var(--display); font-weight: 900; font-size: 120px; color: var(--alert); border: 12px solid var(--alert); border-radius: 22px; padding: 6px 34px; transform: rotate(-8deg); }
+  .cal li { list-style: none; display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 26px; padding: 24px 0; border-bottom: 1px solid var(--line); font-size: 32px; }
+  .cal b { font-family: var(--display); font-size: 70px; color: var(--gold-2); }
+</style>
+</head>
+<body data-duration="30">
+<div class="stage" id="stage">
+
+  <!-- 0: opening -->
+  <div class="abs eye" id="eye0" style="left:900px;top:300px;width:120px;height:120px" data-at="0 3.1" data-fx="pop" data-in="0.9"><i style="width:44px;height:44px"></i></div>
+  <div class="abs center display h1" style="top:520px" data-at="0.7 3.1" data-fx="up">Every shilling that leaks</div>
+  <div class="abs center display h1 gold" style="top:650px" data-at="1.5 3.1" data-fx="up">should have been your profit.</div>
+
+  <!-- 1: the count that didn't add up -->
+  <div class="abs mono kicker" data-at="3.3 8.2" data-fx="fade">Nairobi CBD · stockroom · 10:51</div>
+  <div class="abs say" style="left:140px;top:230px;font-size:44px" data-at="3.4 8.2" data-fx="up">The storekeeper said</div>
+  <div class="abs big-num" style="left:140px;top:320px" data-at="3.6 8.2" data-fx="pop">10</div>
+  <div class="abs say" style="left:720px;top:230px;font-size:44px" data-at="4.5 8.2" data-fx="up">The shelf sensors said</div>
+  <div class="abs big-num red" style="left:720px;top:320px" data-at="4.7 8.2" data-fx="pop">7</div>
+  <div class="abs alert" style="left:1260px;top:250px;width:560px;font-size:34px" data-at="5.6 8.2" data-fx="left scale" data-dist="120">
+    <div class="meta"><span class="chip high">high</span><span class="chip owner">owner-direct</span><span>NBO-01</span></div>
+    <div class="t">Storekeeper's count of Smartphone A15 doesn't match reality</div>
+    <div class="d">Reported 10 · sensors counted 7 · KES 48,000 missing</div>
+  </div>
+  <div class="abs say muted" style="left:140px;top:780px;font-size:44px" data-at="6.3 8.2" data-fx="up">Straight to the owner. No manager can close it.</div>
+
+  <!-- 2: the truck -->
+  <div class="abs mono kicker" data-at="8.3 13.2" data-fx="fade">A109 · Nairobi → Mombasa · 02:14</div>
+  <div class="abs display" style="left:140px;top:240px;font-size:96px;width:720px" data-at="8.4 13.2" data-fx="up">A truck leaves its route at 2 am.</div>
+  <svg class="abs map" viewBox="0 0 880 780" data-at="8.3 13.2" data-fx="fade">
+    <rect x="0" y="0" width="880" height="780" rx="28" fill="#10161d" stroke="#25303b"/>
+    <path d="M 40 120 C 200 160, 330 240, 440 360 S 700 560, 840 700" fill="none" stroke="#2f3d4b" stroke-width="120" stroke-linecap="round" opacity=".35"/>
+    <path id="route" d="M 40 120 C 200 160, 330 240, 440 360 S 700 560, 840 700" fill="none" stroke="#5bb3ff" stroke-width="6" stroke-dasharray="14 12"/>
+    <path id="detour" d="M 440 360 C 470 420, 380 520, 300 640" fill="none" stroke="#ff5a5f" stroke-width="7"/>
+    <circle cx="40" cy="120" r="14" fill="#d4a017"/><text x="62" y="110" fill="#e6eaee" font-family="IBM Plex Mono" font-size="24">NBO-01</text>
+    <circle cx="840" cy="700" r="14" fill="#d4a017"/><text x="700" y="750" fill="#e6eaee" font-family="IBM Plex Mono" font-size="24">MBA-01</text>
+    <circle id="truck" r="16" fill="#5bb3ff" stroke="#0b0e12" stroke-width="4"/>
+    <circle id="ping" r="16" fill="none" stroke="#ff5a5f" stroke-width="4"/>
+  </svg>
+  <div class="abs alert critical" style="left:140px;top:560px;width:700px;font-size:34px" data-at="10.6 13.2" data-fx="up">
+    <div class="meta"><span class="chip critical">high</span><span class="chip owner">owner-direct</span><span>TRK-KDA-101</span></div>
+    <div class="t">Truck KDA 101X left its planned route</div>
+    <div class="d">9 km outside the corridor. The fleet controller and the owner are being called now.</div>
+  </div>
+
+  <!-- 3: the borrowed login -->
+  <div class="abs mono kicker" data-at="13.3 18.2" data-fx="fade">Till R2 · 08:07</div>
+  <div class="abs display" style="left:140px;top:230px;font-size:92px;width:1500px" data-at="13.4 18.2" data-fx="up">A cashier signs in with a colleague's login.</div>
+  <div class="abs" style="left:240px;top:520px;text-align:center" data-at="14.2 18.2" data-fx="up">
+    <div class="face" style="background:#1d2733;color:#8e9aa7;margin:0 auto">ZM</div>
+    <div class="mono muted" style="margin-top:22px;font-size:24px">Credentials</div><div style="font-size:36px;font-weight:600">Zawadi M.</div>
+  </div>
+  <div class="abs display muted" style="left:560px;top:570px;font-size:80px" data-at="14.6 18.2" data-fx="fade">≠</div>
+  <div class="abs" style="left:760px;top:520px;text-align:center" data-at="14.8 18.2" data-fx="up">
+    <div class="face" style="background:#3a2a10;color:#f0bf3a;margin:0 auto">PO</div>
+    <div class="mono muted" style="margin-top:22px;font-size:24px">Live face</div><div style="font-size:36px;font-weight:600">Peace O.</div>
+  </div>
+  <div class="abs mono" style="left:1160px;top:560px;font-size:30px;color:var(--muted)" data-at="15.2 18.2" data-fx="fade">face match</div>
+  <div class="abs display red" style="left:1160px;top:600px;font-size:110px" data-at="15.2 18.2" data-fx="count" data-from="100" data-to="7" data-cd="0.9" data-suffix="%">7%</div>
+  <div class="abs stamp" style="left:1140px;top:780px" data-at="16.1 18.2" data-fx="pop" data-in="0.5">REFUSED</div>
+
+  <!-- 4: KRA -->
+  <div class="abs mono kicker" data-at="18.3 23.2" data-fx="fade">Tax &amp; KRA</div>
+  <div class="abs display" style="left:140px;top:230px;font-size:84px;width:820px" data-at="18.4 23.2" data-fx="up">You will never owe KRA <span class="gold">without knowing it first.</span></div>
+  <ul class="abs cal" style="left:1000px;top:230px;width:800px" data-at="18.8 23.2" data-fx="left" data-dist="100">
+    <li><b>9</b><span>PAYE, SHIF, NSSF &amp; Housing Levy</span><span class="chip high">in 3 days</span></li>
+    <li><b>20</b><span>VAT return, pre-filled from eTIMS</span><span class="chip owner">ready</span></li>
+    <li><b>20</b><span>Instalment tax</span><span class="chip ok">on track</span></li>
+  </ul>
+  <div class="abs say muted" style="left:140px;top:720px;font-size:40px;width:820px" data-at="19.6 23.2" data-fx="up">eTIMS invoices, VAT, PAYE, licences and penalties, tracked for you.</div>
+
+  <!-- 5: the command centre -->
+  <div class="abs shot" style="left:310px;top:230px;width:1300px" data-at="23.3 27.3" data-fx="fade zoom"><img src="../../assets/dashboard.jpg" alt=""></div>
+  <div class="abs center display" style="top:90px;font-size:76px" data-at="23.8 27.3" data-fx="up">Every store. Every shilling. <span class="gold">One screen.</span></div>
+
+  <!-- 6: end card -->
+  <div class="abs brand" style="left:0;right:0;justify-content:center;top:250px;font-size:64px" data-at="27.3 30.5" data-fx="scale fade">
+    <span class="eye" style="width:96px;height:96px"><i style="width:36px;height:36px"></i></span><b>OJO SENTINEL</b></div>
+  <div class="abs center display h1" style="top:430px" data-at="27.6 30.5" data-fx="up">We see everything <span class="gold">they ignore.</span></div>
+  <div class="abs center" style="top:640px;font-size:42px" data-at="28.1 30.5" data-fx="up">From <b class="gold">KES 10,000</b> a month · Pay by M-Pesa or card</div>
+  <div class="abs center" style="top:760px" data-at="28.5 30.5" data-fx="up"><span class="cta" style="font-size:40px">Try the live demo · pizzatechies.github.io/ojo</span></div>
+</div>
+<script src="engine.js"></script>
+<script>
+  // The truck drives along the route, then leaves it; the alert pings where it left.
+  const route = document.getElementById("route"), detour = document.getElementById("detour");
+  const truck = document.getElementById("truck"), ping = document.getElementById("ping");
+  const L1 = route.getTotalLength(), L2 = detour.getTotalLength();
+  AD.on((t, { clamp, easeIO }) => {
+    const k = clamp((t - 8.4) / 4.4);
+    const onRoute = k < 0.45;
+    const p = onRoute ? route.getPointAtLength(L1 * 0.5 * easeIO(k / 0.45)) : detour.getPointAtLength(L2 * easeIO((k - 0.45) / 0.55));
+    truck.setAttribute("cx", p.x); truck.setAttribute("cy", p.y);
+    truck.setAttribute("fill", onRoute ? "#5bb3ff" : "#ff5a5f");
+    detour.style.strokeDasharray = L2; detour.style.strokeDashoffset = L2 * (1 - clamp((k - 0.45) / 0.55));
+    const pk = (t - 10.4) % 1.2;
+    ping.setAttribute("cx", p.x); ping.setAttribute("cy", p.y);
+    ping.setAttribute("r", t > 10.4 ? 16 + pk * 50 : 0); ping.setAttribute("opacity", t > 10.4 ? 1 - pk / 1.2 : 0);
+  });
+</script>
+</body>
+</html>

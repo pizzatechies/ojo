@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OJO Sentinel ad: Plans and pricing (15s, 1:1)</title>
+<link rel="stylesheet" href="ads.css">
+<style>
+  .stage { width: 1080px; height: 1080px; font-size: 34px; }
+  .plan { top: 330px; width: 300px; height: 440px; border-radius: 26px; background: var(--night-2); border: 1px solid var(--line); padding: 34px 28px;
+          display: grid; align-content: start; gap: 12px; }
+  .plan.featured { border: 3px solid var(--gold); background: #17130a; }
+  .plan h3 { font-family: var(--display); font-weight: 800; font-size: 44px; }
+  .plan .p { font-family: var(--display); font-weight: 900; font-size: 52px; letter-spacing: -.02em; line-height: 1; }
+  .plan .p small { font-size: 22px; font-weight: 700; margin-right: 6px; }
+  .plan .per { color: var(--muted); font-size: 26px; }
+  .plan .what { color: var(--muted); font-size: 25px; line-height: 1.35; margin-top: 10px; }
+  .pay { display: inline-flex; gap: 18px; align-items: center; }
+  .pill { border: 2px solid var(--line); border-radius: 999px; padding: 14px 30px; font-weight: 700; font-size: 38px; background: var(--night-2); }
+  .pill.mpesa { border-color: #3fae49; color: #6fd46f; }
+</style>
+</head>
+<body data-duration="15">
+<div class="stage" id="stage">
+  <div class="abs center display" style="top:330px;font-size:92px;padding:0 60px" data-at="0 2.8" data-fx="up">Security, stock, cash <span class="gold">and KRA.</span></div>
+  <div class="abs center muted" style="top:600px;font-size:44px" data-at="0.8 2.8" data-fx="up">One subscription.</div>
+
+  <div class="abs center display" style="top:150px;font-size:70px" data-at="2.8 10.0" data-fx="up">Pick how far it watches.</div>
+  <div class="abs plan" style="left:60px" data-at="3.2 10.0" data-fx="up pop">
+    <h3>Basic</h3><div class="p"><small>KES</small><span data-at="3.2 10.0" data-fx="count none" data-to="10000" data-cd="1.1">10,000</span></div><div class="per">a month · 1 store</div>
+    <div class="what">CCTV brain, stock counts, till and cash, owner-only alerts</div></div>
+  <div class="abs plan featured" style="left:390px" data-at="3.7 10.0" data-fx="up pop">
+    <h3>Standard</h3><div class="p"><small>KES</small><span data-at="3.7 10.0" data-fx="count none" data-to="30000" data-cd="1.1">30,000</span></div><div class="per">a month · 5 stores</div>
+    <div class="what">+ goods in transit, tracking, cyber, AI, Tax &amp; KRA, expiry</div></div>
+  <div class="abs plan" style="left:720px" data-at="4.2 10.0" data-fx="up pop">
+    <h3>Premium</h3><div class="p"><small>KES</small><span data-at="4.2 10.0" data-fx="count none" data-to="50000" data-cd="1.1">50,000</span></div><div class="per">a month · unlimited</div>
+    <div class="what">+ the store runs itself: autonomous day, calls, Silent Witness</div></div>
+  <div class="abs center" style="top:840px;font-size:44px" data-at="6.0 10.0" data-fx="up">Pay yearly: <b class="gold">2 months free.</b></div>
+
+  <div class="abs center display" style="top:330px;font-size:84px" data-at="10.0 12.6" data-fx="up">Pay the way you pay.</div>
+  <div class="abs center" style="top:540px" data-at="10.4 12.6" data-fx="up"><span class="pay"><span class="pill mpesa">M-PESA</span><span class="pill">VISA</span><span class="pill">MASTERCARD</span></span></div>
+  <div class="abs center muted" style="top:700px;font-size:36px" data-at="10.8 12.6" data-fx="up">Monthly or yearly, from your dashboard.</div>
+
+  <div class="abs brand" style="left:0;right:0;justify-content:center;top:300px;font-size:54px" data-at="12.6 15.5" data-fx="scale fade">
+    <span class="eye" style="width:80px;height:80px"><i style="width:30px;height:30px"></i></span><b>OJO SENTINEL</b></div>
+  <div class="abs center display" style="top:450px;font-size:84px;padding:0 50px" data-at="12.8 15.5" data-fx="up">We see everything <span class="gold">they ignore.</span></div>
+  <div class="abs center" style="top:780px" data-at="13.3 15.5" data-fx="up"><span class="cta" style="font-size:38px">Try the live demo · pizzatechies.github.io/ojo</span></div>
+</div>
+<script src="engine.js"></script>
+</body>
+</html>
