@@ -245,6 +245,9 @@ section { padding-block: clamp(64px, 9vw, 120px); }
 .final .lede { color: var(--night-muted); margin-top: 18px; }
 .final ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; font-size: 15px; color: var(--night-muted); }
 .final ul li::before { content: "→ "; color: var(--gold-bright); font-family: var(--font-mono); }
+.brochure-qr { display: inline-flex; align-items: center; gap: 14px; margin-top: 24px; color: var(--night-muted); text-decoration: none; font-size: 14px; line-height: 1.4; max-width: 300px; }
+.brochure-qr img { width: 88px; height: 88px; padding: 6px; border-radius: 8px; background: #fff; flex-shrink: 0; }
+.brochure-qr:hover span { color: var(--night-text); }
 
 footer { background: var(--night); color: var(--night-muted); border-top: 1px solid var(--night-line); font-size: 14px; }
 footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding-block: 28px calc(28px + env(safe-area-inset-bottom, 0px)); }
@@ -301,6 +304,7 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
       <a href="#pricing">Pricing</a>
       <a href="#connects">Integrations</a>
       <a href="#protects">What it protects</a>
+      <a href="brochure/">Brochure</a>
     </nav>
     <a class="btn btn-gold" href="demo/">Try the live demo <span class="arrow">→</span></a>
   </div>
@@ -716,7 +720,8 @@ prev  41b7d2…0c9d   sha-256</span></pre>
       <div>
         <h2 id="final-title">See it for yourself.</h2>
         <p class="lede">Step into the owner's command centre. Set off a weapon alert, a tampered delivery or a storekeeper hiding a loss, then switch to a manager and try to make it go away.</p>
-        <div class="hero-cta"><a class="btn btn-gold" href="demo/">Open the live demo <span class="arrow">→</span></a></div>
+        <div class="hero-cta"><a class="btn btn-gold" href="demo/">Open the live demo <span class="arrow">→</span></a><a class="btn btn-line" href="brochure/">Read the brochure</a></div>
+        <a class="brochure-qr" href="brochure/"><img src="brochure/qr-brochure.png" width="88" height="88" alt="QR code for the OJO Sentinel brochure"><span>Scan or tap for the brochure. The PDF downloads from there.</span></a>
       </div>
       <ul aria-label="In the demo">
         <li>Four stores in Nairobi, Mombasa, Kampala and Lagos</li>
