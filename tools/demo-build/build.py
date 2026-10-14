@@ -38,6 +38,7 @@ TOKENS = """
   color-scheme: dark;
 }
 """
+css = css.replace("color: #06210f;", "color: var(--ink-on-color);")  # health-green label
 css = css.replace("color: #111;", "color: var(--ink-on-color);").replace("color: #fff;", "color: var(--ink-on-critical);")
 css = css.replace(".b-night { background: #2b3a67; color: #cdd8ff; }", ".b-night { background: var(--night-bg); color: var(--night-fg); }")
 css = css.replace(".b-day { background: #5a4a12; color: #ffe9a8; }", ".b-day { background: var(--day-bg); color: var(--day-fg); }")
@@ -110,6 +111,10 @@ main { padding-bottom: 96px; }
   .demo-panel { top: calc(76px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 100px); }
   .demo-panel[data-collapsed="true"] { top: auto; }
 }
+/* the demo shows every branch at once on the new tabs; the branch picker is for a live deployment */
+#rev-store, #exp-store { display: none; }
+/* fifteen tabs don't fit on one line; show them all rather than hide the newest behind a scroll */
+@media (min-width: 641px) { #tabs { flex-wrap: wrap; row-gap: 2px; } }
 /* ask dialog */
 .ask-card { width: min(460px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 10px; }
 .ask-card label { font-weight: 600; }
@@ -224,6 +229,19 @@ swap("  loadSession();\n", '''  window.DEMO_LOGIN = async (username) => {
   loadSession();
 ''')
 
+# The Revenue, Branches and Expiry tabs live in their own file. The demo has no live-test console (it only exists on a server
+# started for live testing), and it keeps its own clock: the data was captured at one moment, and dates are read against it.
+intel = (STATIC / "intel.js").read_text()
+
+def swap_intel(old, new, count=1):
+    global intel
+    assert intel.count(old) == count, (old, intel.count(old))
+    intel = intel.replace(old, new)
+
+swap_intel("new Date(t.expected_arrival) < new Date()", "new Date(t.expected_arrival) < new Date(window.DEMO.now())")
+swap_intel("    const now = new Date();\n", "    const now = new Date(window.DEMO.now());\n")
+assert "Date.now()" not in intel
+
 # ------------------------------------------------------------------ HTML body from the real index.html
 html = (STATIC / "index.html").read_text()
 body = html[html.index("<body>") + 6: html.index("  <script src=\"https://cdnjs")]
@@ -238,7 +256,7 @@ body = body[:login_start] + '''  <section id="login" class="login">
         <button class="choice" data-login="sirojo"><span>Enter as the owner</span><small>Sir Ojo · sees every store</small></button>
         <button class="choice ghost" data-login="store.nbo-01"><span>Enter as a store manager</span><small>Nairobi CBD only</small></button>
       </div>
-      <p class="small">Inside, use <b>Demo controls</b> to set off incidents, such as a weapon at the door, a storekeeper hiding a loss or a tampered delivery. Then switch roles to see what a manager can and can't do.</p>
+      <p class="small">Inside, use <b>Demo controls</b> to set off incidents, such as a weapon at the door, a storekeeper hiding a loss or a tampered delivery. Then open the <b>Revenue</b>, <b>Branches</b> and <b>Expiry</b> tabs to see the money, every branch and the shelf life of your stock. Switch roles to see what a manager can and can't do.</p>
       <details><summary>Sign in with a username instead</summary>
         <form id="login-form">
           <label for="login-user">Username</label><input id="login-user" name="username" autocomplete="username" value="sirojo" required>
@@ -282,9 +300,22 @@ SCENARIOS = [
     ("power_cut", "Power cut", "Kampala"),
     ("link_down", "Internet fails over to 4G", "Nairobi"),
     ("device_hot", "Video recorder overheating", "Nairobi"),
+    ("unregistered_sale", "Unregistered product at the till", "Nairobi"),
+    ("void_after_tender", "Sale voided after the customer paid", "Nairobi"),
+    ("mpesa_diverted", "Payment sent to a personal number", "Nairobi"),
+    ("mpesa_orphan", "M-Pesa payment with no sale", "Mombasa"),
+    ("personal_qr", "Personal QR code at the till", "Nairobi"),
+    ("shadow_inventory", "Staff carry goods in, then sell them", "Nairobi"),
+    ("ghost_sale", "Sale rung with no customer there", "Nairobi"),
+    ("receipt_fraud", "Receipt with no sale behind it", "Nairobi"),
+    ("branch_pattern", "Cash short in several branches", "3 branches"),
+    ("transfer_short", "Stock arrives short between branches", "Nairobi → Lagos"),
+    ("chiller_fault", "Chiller fault", "Nairobi"),
+    ("recall", "Supplier recall: batch MK-2610-A21", "All branches"),
 ]
 GROUP_BREAKS = {k: f'</div><h4 class="scenario-group">{h}</h4><div class="scenarios">' for k, h in
-                [("supplier_pin_inactive", "Tax &amp; finance"), ("impersonation", "Runs itself")]}
+                [("supplier_pin_inactive", "Tax &amp; finance"), ("impersonation", "Runs itself"), ("unregistered_sale", "Revenue integrity"),
+                 ("branch_pattern", "Multi-branch"), ("chiller_fault", "Expiry intelligence")]}
 panel = '''
   <aside id="demo-panel" class="demo-panel" data-collapsed="false" aria-label="Demo controls" hidden>
     <div class="demo-head"><b>Demo controls</b><button id="demo-toggle" class="small ghost" aria-expanded="true">Hide</button></div>
@@ -391,6 +422,9 @@ page = f'''<title>OJO Sentinel Live Demo</title>
 </script>
 <script>
 {js}
+</script>
+<script>
+{intel}
 </script>
 <script>
 {PANEL_JS}

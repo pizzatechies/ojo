@@ -299,11 +299,12 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
     <nav class="nav-links" aria-label="Sections">
       <a href="#capabilities">Capabilities</a>
       <a href="#truth">Governance</a>
+      <a href="#revenue">Revenue</a>
+      <a href="#branches">Branches</a>
+      <a href="#expiry">Expiry</a>
       <a href="#tax">Tax &amp; KRA</a>
       <a href="#autonomy">Autonomous</a>
       <a href="#pricing">Pricing</a>
-      <a href="#connects">Integrations</a>
-      <a href="#protects">What it protects</a>
       <a href="brochure/">Brochure</a>
     </nav>
     <a class="btn btn-gold" href="demo/">Try the live demo <span class="arrow">→</span></a>
@@ -316,7 +317,7 @@ footer b { color: var(--night-text); font-family: var(--font-display); font-stre
       <div>
         <p class="eyebrow" style="color:var(--gold-bright)">OJO Stores Management presents</p>
         <h1 style="margin-top:18px">We see everything <em>they ignore.</em></h1>
-        <p class="lede">OJO Sentinel watches your stock, your cash, your people, your deliveries, your systems and your tax obligations, and runs the routine of every store day on its own. It tells you, the owner, what is really happening in every store, the moment it happens. No manager can hide it from you.</p>
+        <p class="lede">OJO Sentinel watches your stock and its expiry dates, your tills and every payment, your people, your deliveries, every branch, your systems and your tax obligations, and runs the routine of every store day on its own. It tells you, the owner, what is really happening in every store, the moment it happens. No manager can hide it from you.</p>
         <div class="hero-cta">
           <a class="btn btn-gold" href="demo/">Try the live demo <span class="arrow">→</span></a>
           <a class="btn btn-line" href="#capabilities">See what it watches</a>
@@ -572,6 +573,164 @@ prev  41b7d2…0c9d   sha-256</span></pre>
     </div>
   </section>
 
+  <section id="revenue" style="padding-top:0" aria-labelledby="rev-title">
+    <div class="wrap">
+      <div class="tax-grid">
+        <div>
+          <p class="eyebrow">Revenue Integrity</p>
+          <h2 id="rev-title" style="margin-top:16px">Every shilling paid should be a shilling recorded.</h2>
+          <p class="lede" style="margin-top:20px">Theft at the till rarely looks like theft. It looks like a sale of something nobody ever received, a customer paying to a personal number, a void minutes after the money changed hands. OJO Sentinel watches every sale and every payment channel at once, holds the suspect ones for you, and lets you stop a till from your phone.</p>
+          <p class="kicker">The sale, the payment and the stock have to agree. When they don't, you're told.</p>
+        </div>
+        <div class="calendar" aria-label="Example of a morning at the till">
+          <div class="calendar-head"><span>A MORNING AT NBO-01</span><span>caught as it happened</span></div>
+          <ol>
+            <li><span class="date"><b>11:02</b>till R1</span><span class="what">Unregistered product sold at OJO Stores Nairobi CBD<small>A barcode that is not in the store's registered inventory. The sale is suspended until you decide.</small></span><span class="count soon">held</span></li>
+            <li><span class="date"><b>11:03</b>till R1</span><span class="what">Zawadi Mutua voided a paid sale of 4,421<small>Already paid in cash when it was voided, with the receipt issued.</small></span><span class="count ">owner</span></li>
+            <li><span class="date"><b>11:05</b>M-Pesa</span><span class="what">Revenue diversion: 2,344 paid to an unregistered number<small>Not one of the business's registered M-Pesa tills or bank accounts.</small></span><span class="count late">critical</span></li>
+            <li><span class="date"><b>11:08</b>camera</span><span class="what">Personal payment device at R1<small>A customer is being redirected away from the till while a cashier serves.</small></span><span class="count late">critical</span></li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="tax-caps">
+        <div><span class="mono">SHADOW SALES</span><h3>Sales of goods you never received</h3><p>A barcode that isn't in your inventory suspends the sale. Only you can release or reject it, and a second one makes that cashier a substitution risk.</p></div>
+        <div><span class="mono">M-PESA</span><h3>Every payment matched to a sale</h3><p>Money in with no sale, a sale with no money, the wrong amount, or a customer paying a personal number instead of your till: each one is caught.</p></div>
+        <div><span class="mono">RECONCILED</span><h3>Cash, M-Pesa, bank and card</h3><p>Sales recorded against money received, channel by channel and branch by branch, with the gap shown in shillings.</p></div>
+        <div><span class="mono">REFUNDS · VOIDS</span><h3>The patterns behind the excuses</h3><p>Voids after the customer paid, refunds just under the approval limit, one person doing most of the refunds, returns with no sale, and last-half-hour adjustments.</p></div>
+        <div><span class="mono">CCTV AT THE TILL</span><h3>The cameras check the till</h3><p>A personal QR code in the transaction zone, more items on the counter than were scanned, goods carried in by staff, and sales rung with nobody there.</p></div>
+        <div><span class="mono">FRAUD SCORE</span><h3>A risk score for every employee</h3><p>0 to 100, updated through the day, with the three signals that drive it. The score is a reason to look, never a verdict.</p></div>
+        <div><span class="mono">OWNER OVERRIDE</span><h3>Freeze, lock, suspend</h3><p>Hold a sale, lock a till or suspend a cashier from your phone. It takes effect on the next sale. A manager who tries is refused, and you're told.</p></div>
+        <div><span class="mono">SUPPLY</span><h3>Selling more than was ever received</h3><p>Sales that exceed everything ever delivered, goods sold that were never booked in, and one person receiving, recording and selling the same supplier's goods.</p></div>
+        <div><span class="mono">TILL LOG</span><h3>Who did what, at which till</h3><p>Openings, voids, discounts, refunds and overrides, kept for every register, so a missing shilling has a name and a time beside it.</p></div>
+      </div>
+
+      <div class="misses">
+        <div>
+          <h3 style="font-size:24px">What a till can't tell you on its own</h3>
+          <p style="color:var(--muted); margin-top:10px">A till only knows what it was told. OJO Sentinel compares it with the cameras, the stock, the payment feeds and the bank.</p>
+        </div>
+        <ul>
+          <li><span>A cashier scans a product that was never received. The sale is held, you see it before the customer has left, and nothing is booked until you decide.</span></li>
+          <li><span>A customer pays to a personal M-Pesa number. The till shows a sale, the till's own number shows no money, and the gap is named.</span></li>
+          <li><span>A sale is voided minutes after the customer paid. That is flagged, and so is a run of voids and refunds in the last half hour of a shift.</span></li>
+          <li><span>A phone with a QR code sits on the counter. The camera sees it and you get a critical alert while the customer is still standing there.</span></li>
+          <li><span>Sales are rung up at a till where the camera saw no customer. They are listed as ghost sales, with the cashier and the amount.</span></li>
+          <li><span>Two branches see the same unregistered product on the same day. That is shown to you as one pattern, not two small events.</span></li>
+        </ul>
+      </div>
+
+      <a class="shot fin-shot" href="demo/" style="display:block"><img src="assets/revenue.jpg" width="2160" height="1350" loading="lazy" alt="OJO Sentinel Revenue tab showing sales waiting for the owner's decision, fraud risk by employee, every payment channel reconciled, owner override controls and the till accountability log"></a>
+      <div class="shot-caption" style="color:var(--muted)"><span>The Revenue tab in the live demo.</span><a href="demo/" style="color:var(--gold)">Try it →</a></div>
+    </div>
+  </section>
+
+  <section id="branches" style="padding-top:0" aria-labelledby="br-title">
+    <div class="wrap">
+      <div class="tax-grid">
+        <div>
+          <p class="eyebrow">Multi-Branch Intelligence</p>
+          <h2 id="br-title" style="margin-top:16px">Every branch at once, without visiting any.</h2>
+          <p class="lede" style="margin-top:20px">An owner with four branches can only be in one. OJO Sentinel gives each branch a live health colour, rotates a feed through them by itself, longest on the ones in trouble, and compares them against their own usual day and against each other. When something matters, it reaches your phone without you opening anything.</p>
+          <p class="kicker">You shouldn't have to go looking for the branch that needs you.</p>
+        </div>
+        <div class="calendar" aria-label="Example of the branch health board">
+          <div class="calendar-head"><span>BRANCH HEALTH · 4 BRANCHES</span><span>live</span></div>
+          <ol>
+            <li><span class="date"><b>RED</b>NBO-01</span><span class="what">1 critical alert open<small>8 high alerts open · 8 unsellable units on hand</small></span><span class="count late">red</span></li>
+            <li><span class="date"><b>AMBER</b>MBA-01</span><span class="what">4 high alerts open<small>9 owner-direct alerts open · 1 sale held or frozen</small></span><span class="count soon">amber</span></li>
+            <li><span class="date"><b>AMBER</b>KLA-01</span><span class="what">3 high alerts open<small>5 owner-direct alerts open</small></span><span class="count soon">amber</span></li>
+            <li><span class="date"><b>AMBER</b>LOS-01</span><span class="what">2 high alerts open<small>3 owner-direct alerts open · 25 unsellable units on hand</small></span><span class="count soon">amber</span></li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="tax-caps">
+        <div><span class="mono">HEALTH</span><h3>Green, amber or red, with the reason</h3><p>Open alerts, held sales, locked tills, unsellable stock, a camera offline, running on a generator or backup internet: each branch says why it has the colour it has.</p></div>
+        <div><span class="mono">ROTATING FEED</span><h3>A feed that moves itself</h3><p>Sales, footfall, staff on site, cameras and stock for each branch in turn. Branches in trouble come first and stay on screen longer. Pause it when you want to look closer.</p></div>
+        <div><span class="mono">COMPARISON</span><h3>Branch against branch</h3><p>Today so far against each branch's usual for this time of day, and against its peers. A branch selling far below its usual is named, with the reason.</p></div>
+        <div><span class="mono">ONE LIST</span><h3>Everything open, most serious first</h3><p>Every open alert across every branch in one ranked list, with the owner-direct ones marked.</p></div>
+        <div><span class="mono">CORRELATION</span><h3>The same problem in several branches</h3><p>Cash short at three branches in a day, or the same unregistered product at two. That is shown as one pattern and escalated, because it is rarely coincidence.</p></div>
+        <div><span class="mono">PUSH</span><h3>Sent to your phone, unasked</h3><p>Serious alerts, recalls and end-of-day summaries are pushed to you. Where an SMS or WhatsApp gateway is connected, they go there too.</p></div>
+        <div><span class="mono">TRANSFERS</span><h3>Stock moving between branches</h3><p>What left, what is still in transit, what is overdue, and what arrived short or damaged, with who sent it and who received it.</p></div>
+        <div><span class="mono">END OF DAY</span><h3>The day, written up for you</h3><p>Sales, refunds, cash against the till, incidents, stock movements and attendance, with the issues listed. Nobody has to compile it.</p></div>
+        <div><span class="mono">LIVE FEED</span><h3>One tap from alert to camera</h3><p>Each branch slide carries its live-feed address, so the camera is where the alert is.</p></div>
+      </div>
+
+      <div class="misses">
+        <div>
+          <h3 style="font-size:24px">Patterns no single branch can see</h3>
+          <p style="color:var(--muted); margin-top:10px">Each branch manager sees one branch. You are the only person who sees all of them, and so is OJO Sentinel.</p>
+        </div>
+        <ul>
+          <li><span>Cash is short at Nairobi, Mombasa and Kampala on the same day. It is raised as one escalated finding, not three small ones.</span></li>
+          <li><span>A transfer of 20 units leaves Nairobi and 16 arrive in Lagos, marked damaged. The manifest, the count and both names are on the alert.</span></li>
+          <li><span>One branch trades far below its usual for the hour while its footfall is normal. It is flagged as underperforming before closing time.</span></li>
+          <li><span>A branch goes onto backup internet and then onto the generator. Its colour changes and the owner sees why.</span></li>
+          <li><span>The Mombasa day closes with 14 incidents and 4 issues. The summary is on your phone before the manager has finished counting.</span></li>
+        </ul>
+      </div>
+
+      <a class="shot fin-shot" href="demo/" style="display:block"><img src="assets/branches.jpg" width="2160" height="1014" loading="lazy" alt="OJO Sentinel Branches tab showing how many branches are green, amber or red, a pattern spotted across three branches, stock in transit, the rotating branch feed and the health map"></a>
+      <div class="shot-caption" style="color:var(--muted)"><span>The Branches tab in the live demo.</span><a href="demo/" style="color:var(--gold)">Try it →</a></div>
+    </div>
+  </section>
+
+  <section id="expiry" style="padding-top:0" aria-labelledby="exp-title">
+    <div class="wrap">
+      <div class="tax-grid">
+        <div>
+          <p class="eyebrow">Expiry Intelligence</p>
+          <h2 id="exp-title" style="margin-top:16px">No expired product on any shelf. No waste. No liability.</h2>
+          <p class="lede" style="margin-top:20px">From the moment goods are received to the moment they are sold or removed, OJO Sentinel tracks every batch by its expiry date. It warns you at 30, 14, 7 and 1 day, refuses expired and recalled stock at the till, tells you where it will sell in time, and keeps the record KEBS and KEFDAC inspectors ask for.</p>
+          <p class="kicker">The cheapest loss to prevent is the one you saw coming a month ago.</p>
+        </div>
+        <div class="calendar" aria-label="Example of the expiry warning ladder">
+          <div class="calendar-head"><span>THE EXPIRY LADDER</span><span>real alerts from the demo</span></div>
+          <ol>
+            <li><span class="date"><b>30</b>days</span><span class="what">30-day warning: 80 × Yoghurt 500ml at OJO Stores Kampala Central on shelf chiller<small>Batch YG-2610-B11 expires 2026-11-08. Promote it, discount it, or move it to the front so it sells first.</small></span><span class="count ">low</span></li>
+            <li><span class="date"><b>14</b>days</span><span class="what">14-day alert: 420 × Cooking Oil 5L at OJO Stores Mombasa Nyali<small>Batch OL-2510-044 expires 2026-10-26. Mark down 25% to 1,110, move it to the front of the shelf, or run a promotion.</small></span><span class="count ">medium</span></li>
+            <li><span class="date"><b>7</b>days</span><span class="what">7-day CRITICAL warning: 160 × Maize Flour 2kg at OJO Stores Nairobi CBD<small>Batch FL-2406-121 expires 2026-10-17. Mark down 30% to 136 now, or transfer it.</small></span><span class="count soon">high</span></li>
+            <li><span class="date"><b>0</b>expired</span><span class="what">25 × Detergent 1kg past expiry at OJO Stores Lagos Ikeja<small>Batch DT-2410-310 expired 2026-10-13. Take it off the shelf and record the disposal.</small></span><span class="count late">expired</span></li>
+            <li><span class="date"><b>RECALL</b>KEBS</span><span class="what">RECALL: 90 × Fresh Milk 500ml, batch MK-2610-A21, at OJO Stores Nairobi CBD: remove now<small>Blocked at the till and to come off the shelf, whatever the expiry date.</small></span><span class="count late">recalled</span></li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="tax-caps">
+        <div><span class="mono">LADDER</span><h3>30, 14, 7 and 1 day</h3><p>Each step goes to more people with more urgency. The product, the quantity, the shelf and the branch are named, and an unactioned warning escalates.</p></div>
+        <div><span class="mono">TILL BLOCK</span><h3>Expired stock cannot be sold</h3><p>The point of sale refuses expired, recalled and held stock, and every attempt is logged with the cashier's name.</p></div>
+        <div><span class="mono">RECALLS</span><h3>One batch number, every branch</h3><p>Enter a recalled batch and every unit across every branch is blocked at once. You see how many were found, how many sold before, and how many are left.</p></div>
+        <div><span class="mono">SHELF CCTV</span><h3>The cameras check the shelf</h3><p>Expired stock still on display after the warning, shelf labels that don't match the records, and newer stock placed in front of older.</p></div>
+        <div><span class="mono">TEMPERATURE</span><h3>Fridges that drift out of range</h3><p>A chiller above its safe range puts the stock inside on hold and alerts you. An inspector releases it, with a note, once it is cleared.</p></div>
+        <div><span class="mono">MARKDOWN</span><h3>What to discount, and by how much</h3><p>The markdown that clears a batch before it expires while keeping a margin, or a plain "not alone" when no price will do it.</p></div>
+        <div><span class="mono">BALANCING</span><h3>Move it to where it sells</h3><p>Stock near expiry in one branch that another branch sells faster, with the units to send and the write-off avoided. Dispatch it from the same screen.</p></div>
+        <div><span class="mono">FORECAST · ORDERS</span><h3>Waste forecast and order advice</h3><p>What is likely to expire unsold in 30, 60 and 90 days, and how much to order so it is enough for demand and no more.</p></div>
+        <div><span class="mono">SUPPLIERS</span><h3>An expiry risk score per supplier</h3><p>Short-dated deliveries and write-off rates, with the evidence, so a supplier that keeps sending half-life goods is named.</p></div>
+        <div><span class="mono">MORNING BRIEFING</span><h3>Everything near expiry, every morning</h3><p>Pushed to the owner at the start of the day: each product, branch, quantity, the loss at risk and what to do about it.</p></div>
+        <div><span class="mono">WRITE-OFFS</span><h3>Every write-off, at cost and at price</h3><p>By reason, product and branch, for the month or the year, as a CSV. Checked against sales, so disposal of good stock is questioned.</p></div>
+        <div><span class="mono">INSPECTION FILE</span><h3>KEBS &amp; KEFDAC, ready to print</h3><p>Every alert, removal, write-off and blocked sale for any period, with the tamper-proof ledger verified at the foot.</p></div>
+      </div>
+
+      <div class="misses">
+        <div>
+          <h3 style="font-size:24px">Caught weeks before it costs you</h3>
+          <p style="color:var(--muted); margin-top:10px">Expiry is a slow loss, which is why nobody notices it. These are the moments OJO Sentinel turns it into a decision.</p>
+        </div>
+        <ul>
+          <li><span>The dairy co-op recalls batch MK-2610-A21. You enter the number once, and the 90 units on hand are blocked at the till at once.</span></li>
+          <li><span>A chiller reads 10.9 °C against a safe 2 to 8. The 147 units inside go on hold, you are alerted, and no sale of them can go through.</span></li>
+          <li><span>Yoghurt at Mombasa sells 0.6 a day with nine days left, and Kampala sells 1.0. You are told to move 6 units, and the 420 that saves.</span></li>
+          <li><span>A storekeeper writes off good stock as expired. The write-off is compared with what had actually expired, and the gap is raised to you.</span></li>
+          <li><span>A dairy co-op's lots keep arriving with half their life gone. It gets a risk score, with the short-dated lots listed as the evidence.</span></li>
+        </ul>
+      </div>
+
+      <a class="shot fin-shot" href="demo/" style="display:block"><img src="assets/expiry.jpg" width="2160" height="1350" loading="lazy" alt="OJO Sentinel Expiry tab showing money at expiry risk, the morning briefing, stock by expiry date, markdown advice, branch balancing, recalls, shelves and fridges"></a>
+      <div class="shot-caption" style="color:var(--muted)"><span>The Expiry tab in the live demo.</span><a href="demo/" style="color:var(--gold)">Try it →</a></div>
+    </div>
+  </section>
+
   <section style="padding-top:0" aria-labelledby="stories-title">
     <div class="wrap">
       <div class="section-head">
@@ -691,7 +850,9 @@ prev  41b7d2…0c9d   sha-256</span></pre>
             <li>Fake-email and hacker detection, with honeypot traps</li>
             <li>Behavioural AI that learns from every alert you confirm or dismiss</li>
             <li>Tax &amp; Finance: eTIMS invoicing, VAT, PAYE, SHIF, NSSF, licences and accounts</li>
-            <li>Stock expiry control</li>
+            <li>Revenue Integrity: shadow sales, M-Pesa, bank and cash reconciliation, refund and void intelligence, fraud scores, owner override</li>
+            <li>Multi-Branch Intelligence: live branch health, rotating feed, comparison, push alerts, transfers, end-of-day summaries</li>
+            <li>Expiry Intelligence: 30/14/7/1-day warnings, till block, recalls, markdown and order advice, KEBS and KEFDAC file</li>
             <li>Email and phone support</li>
           </ul>
         </article>
@@ -719,15 +880,16 @@ prev  41b7d2…0c9d   sha-256</span></pre>
     <div class="wrap">
       <div>
         <h2 id="final-title">See it for yourself.</h2>
-        <p class="lede">Step into the owner's command centre. Set off a weapon alert, a tampered delivery or a storekeeper hiding a loss, then switch to a manager and try to make it go away.</p>
+        <p class="lede">Step into the owner's command centre. Set off a weapon alert, a payment sent to a personal number or a recalled batch of milk, then switch to a manager and try to make it go away.</p>
         <div class="hero-cta"><a class="btn btn-gold" href="demo/">Open the live demo <span class="arrow">→</span></a><a class="btn btn-line" href="brochure/">Read the brochure</a></div>
         <a class="brochure-qr" href="brochure/"><img src="brochure/qr-brochure.png" width="88" height="88" alt="QR code for the OJO Sentinel brochure"><span>Scan or tap for the brochure. The PDF downloads from there.</span></a>
       </div>
       <ul aria-label="In the demo">
         <li>Four stores in Nairobi, Mombasa, Kampala and Lagos</li>
-        <li>13 real incident types to trigger</li>
+        <li>40 real incident types to trigger, from a weapon at the door to a personal QR code at the till</li>
         <li>Owner and manager views side by side</li>
         <li>KRA deadlines, VAT, PAYE and licences in the Tax &amp; Finance tab</li>
+        <li>Revenue, Branches and Expiry tabs, with the owner's override working</li>
         <li>Runs in your browser, nothing to install</li>
       </ul>
     </div>

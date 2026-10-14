@@ -12,10 +12,16 @@
   const ADMIN = ["owner", "ojo_management"];
   const SEV_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
   const ALERTS_EP = "/api/alerts?limit=500";
-  const TS_FIELDS = ["created_at", "updated_at", "occurred_at", "scanned_at", "last_seen", "last_movement_at", "last_ping_at"];
+  const TS_FIELDS = ["created_at", "updated_at", "occurred_at", "scanned_at", "last_seen", "last_movement_at", "last_ping_at",
+    "received_at", "detected_at", "dispatched_at", "delivered_at", "issued_at"];
   // Endpoints whose rows are records of the same things (replace by key); everything else is a log (append).
   const KEYED = { "/api/stores": "id", "/api/assets": "id", "/api/phones": "id", "/api/shipments": "id", "/api/cameras": "id",
-    "/api/employees": "id", "/api/attendance": "id", "/api/money/cashiers": "cashier" };
+    "/api/employees": "id", "/api/attendance": "id", "/api/money/cashiers": "cashier",
+    "/api/revenue/holds": "id", "/api/revenue/payments": "id", "/api/branches/pulse": "store_id", "/api/branches/alerts": "id",
+    "/api/notifications": "id", "/api/transfers": "reference", "/api/branches/summary": "id", "/api/expiry/recalls": "id" };
+  // Answers the dashboard asks for with a filter or a date; the demo has one answer for each.
+  const ANY_QUERY = /^\/api\/(revenue|branches|notifications|transfers|expiry)(\/|$)/;
+  const MERGED = ["/api/autonomy/overview", "/api/expiry", "/api/revenue/overview", "/api/branches/rotation", "/api/branches/comparison"];
   const SKIP = ["/api/dashboard", "/api/modes", "/api/map", "/api/ai/learning", "/api/ai/risk"];
 
   let S; // demo state
@@ -39,6 +45,11 @@
     S.sub = clone(FX.baseline.owner["/api/subscription"]);
     S.sub.mpesa_mode = "simulated"; S.sub.card_mode = "simulated";
     S.payments = [];
+    S.paths = {};  // path -> the key the answer was captured under, for the endpoints that take a filter
+    for (const role of ["owner", "manager"]) {
+      S.paths[role] = {};
+      for (const k of Object.keys(S.db[role])) { const p = k.replace(/\?.*/, ""); if (p !== k && ANY_QUERY.test(p)) S.paths[role][p] = k; }
+    }
   }
   reset();
   window.DEMO_RESET = () => { reset(); emit({ topic: "demo.reset", data: {} }); };
@@ -64,6 +75,8 @@
       const d = msg.data || {};
       if (msg.topic.startsWith("alert") && !canView(u, d)) continue;
       if (msg.topic === "lockdown" && !ADMIN.includes(u.role) && u.store_id !== d.store_id) continue;
+      if (msg.topic === "notification" && !ADMIN.includes(u.role)) continue;
+      if (msg.topic === "override" && !ADMIN.includes(u.role) && u.role !== "manager") continue;
       setTimeout(() => ws.onmessage && ws.onmessage({ data: JSON.stringify(msg) }), 0);
     }
   }
@@ -154,13 +167,26 @@
 
   // ------------------------------------------------------------------ scenarios (captured from the real engines)
 
+  const base0 = (ep) => ep.replace(/\?.*/, "");
+  const isoMs = (v) => Date.parse(/(Z|[+-]\d\d:?\d\d)$/.test(v) ? v : v + "Z");
+  // Rows captured while a scenario ran carry the capture clock; give them the demo's own "now".
+  function fresh(x) {
+    if (Array.isArray(x)) { x.forEach(fresh); return x; }
+    if (x && typeof x === "object") {
+      for (const [k, v] of Object.entries(x)) {
+        if (typeof v === "string" && (TS_FIELDS.includes(k) || k === "at") && /^\d{4}-\d\d-\d\dT/.test(v) && isoMs(v) > T0) x[k] = DEMO.iso();
+        else fresh(v);
+      }
+    }
+    return x;
+  }
   function applyPatch(role, patch) {
     const db = S.db[role];
     for (const [ep, change] of Object.entries(patch)) {
       if (ep === ALERTS_EP || SKIP.includes(ep) || ep.startsWith("/api/audit")) continue;
       if (change.replace) {
-        if ((ep === "/api/autonomy/overview" || ep === "/api/expiry") && db[ep]) {
-          mergeChanges(db[ep], change.replace, FX.baseline[role][ep]);
+        if (MERGED.includes(ep) && db[ep]) {
+          mergeChanges(db[ep], fresh(clone(change.replace)), FX.baseline[role][ep]);
           continue;
         }
         if (ep === "/api/finance/overview" && db[ep]) {
@@ -172,7 +198,7 @@
           const recs = [...change.replace.reconciliations.filter((r) => !old.reconciliations.some((o) => o.id === r.id)).map((r) => stamp({ ...r, id: ++S.nextId })), ...old.reconciliations];
           for (const r of recs) if (r.variance < 0 && !old.reconciliations.includes(r)) S.shortExtra[r.store_id] = (S.shortExtra[r.store_id] || 0) - r.variance;
           db[ep] = { ...change.replace, reconciliations: recs };
-        } else db[ep] = clone(change.replace);
+        } else db[ep] = ANY_QUERY.test(base0(ep)) ? fresh(clone(change.replace)) : clone(change.replace);
         continue;
       }
       const rows = db[ep];
@@ -195,12 +221,16 @@
 
   // Scenarios were captured one at a time from the same baseline, so merge only what each one changed:
   // rows that differ from the baseline are upserted by key, leaving earlier scenarios' effects in place.
-  const ROW_KEY = (k, r) => (k === "days" || k === "stores" ? r.store_id : k === "devices" ? r.code : r.id);
+  const ROW_KEY = (k, r) => (["days", "stores", "slides", "branches"].includes(k) ? r.store_id : k === "devices" ? r.code
+    : k === "scores" ? `${r.cashier}|${r.store_id}` : k === "tills" ? `${r.store_id}|${r.register}` : k === "suspended" ? r.operator : r.id);
   function mergeChanges(cur, next, base) {
     for (const [k, v] of Object.entries(next)) {
       const b = base ? base[k] : undefined;
       if (JSON.stringify(v) === JSON.stringify(b)) continue;
       if (Array.isArray(v) && Array.isArray(cur[k])) {
+        // Lists of things with no identity (strings, a "top 3", people on site) are simply taken as the scenario left them.
+        const keyed = k !== "top" && v.length && v.every((r) => r && typeof r === "object" && ROW_KEY(k, r) != null && !String(ROW_KEY(k, r)).includes("undefined"));
+        if (!keyed) { cur[k] = clone(v); continue; }
         const rows = cur[k];
         const baseRows = new Set((b || []).map((r) => JSON.stringify(r)));
         for (const r of v.slice().reverse()) {
@@ -211,12 +241,14 @@
       } else if (v && typeof v === "object" && cur[k] && typeof cur[k] === "object") mergeChanges(cur[k], v, b);
       else cur[k] = clone(v);
     }
-    if (cur.batches) {  // /api/expiry totals follow the merged batches
-      cur.batches = cur.batches.filter((r) => r.quantity > 0);
-      cur.expired_units = cur.batches.filter((r) => r.status === "expired").reduce((t, r) => t + r.quantity, 0);
-      cur.expiring_units = cur.batches.filter((r) => r.status === "expiring").reduce((t, r) => t + r.quantity, 0);
-      cur.value_at_risk = Math.round(cur.batches.filter((r) => r.status !== "ok").reduce((t, r) => t + r.value_at_risk, 0) * 100) / 100;
-    }
+    if (cur.batches) expiryTotals(cur);
+    if (Array.isArray(cur.scores)) cur.scores.sort((a, b) => b.score - a.score);
+  }
+  function expiryTotals(v) {  // /api/expiry totals follow the batches
+    v.batches = v.batches.filter((r) => r.quantity > 0);
+    const units = (st) => v.batches.filter((r) => r.status === st).reduce((t, r) => t + r.quantity, 0);
+    v.expired_units = units("expired"); v.expiring_units = units("expiring"); v.recalled_units = units("recalled"); v.held_units = units("held");
+    v.value_at_risk = Math.round(v.batches.filter((r) => r.status !== "ok").reduce((t, r) => t + r.value_at_risk, 0) * 100) / 100;
   }
 
   window.DEMO_TRIGGER = async (kind) => {
@@ -229,6 +261,10 @@
     // Oldest first, so the most serious follow-up (e.g. the lockdown) lands on top of the feed.
     for (const a of news.slice().sort((x, y) => x.id - y.id)) created.push(addAlert(a));
     for (const a of created) await audit("system", "alert.raised", `alert:${a.id}`, { rule: a.rule, severity: a.severity, title: a.title });
+    // What the owner's phone would have buzzed with.
+    const NOTES = "/api/notifications?limit=15";
+    const noteRows = (((sc.patch.owner || {})[NOTES] || { upsert: [] }).upsert || []).filter((n) => !(FX.baseline.owner[NOTES] || []).some((b) => b.id === n.id));
+    for (const n of noteRows.slice().sort((x, y) => x.id - y.id)) { const row = (S.db.owner[NOTES] || []).find((x) => x.id === n.id); if (row) emit({ topic: "notification", data: row }); }
     const stores = S.db.owner["/api/stores"];
     for (const st of stores) {
       if (!st.locked_down || wasLocked.has(st.id)) continue;
@@ -500,6 +536,10 @@
     if (m) { need("owner", "ojo_management"); return await mpesaCheck(+m[1]); }
     m = /^\/api\/alerts\/(\d+)\/dispatch$/.exec(path);
     if (m && method === "POST") { need("owner", "ojo_management", "manager", "security"); return await dispatch(u, +m[1], body.note || ""); }
+    if (method === "POST" || method === "GET") {
+      const r = await intelRoute(u, role, method, path, q, body);
+      if (r !== undefined) return r;
+    }
     if (path === "/api/expiry/dispose" && method === "POST") { need("owner", "ojo_management", "manager", "storekeeper", "security"); return await dispose(u, body); }
     m = /^\/api\/finance\/obligations\/(\d+)\/pay$/.exec(path);
     if (m && method === "POST") { need("owner", "ojo_management"); return await payObligation(u, +m[1], body.reference || ""); }
@@ -509,7 +549,9 @@
     if (method === "GET") {
       const key = path + (u0.search || "");
       const db = S.db[role];
-      if (key in db) return db[key];
+      if (key in db) return answer(path, db[key], q);
+      const alt = S.paths[role][path];
+      if (alt) return answer(path, db[alt], q);
       if (path === "/api/inventory" && q.get("store_id")) throw httpError(403, "not your store");
       if (role === "manager") throw httpError(403, `role '${u.role}' not permitted`);
     }
@@ -713,10 +755,7 @@
         r.likely_unsold = Math.min(r.likely_unsold, r.quantity);
         r.value_at_risk = Math.round(r.likely_unsold * product.unit_cost * 100) / 100;
       }
-      v.batches = v.batches.filter((r) => r.quantity > 0);
-      v.expired_units = v.batches.filter((r) => r.status === "expired").reduce((t, r) => t + r.quantity, 0);
-      v.expiring_units = v.batches.filter((r) => r.status === "expiring").reduce((t, r) => t + r.quantity, 0);
-      v.value_at_risk = Math.round(v.batches.filter((r) => r.status !== "ok").reduce((t, r) => t + r.value_at_risk, 0) * 100) / 100;
+      expiryTotals(v);
     }
     let alert = null;
     if (excess) {
@@ -732,6 +771,215 @@
     return { disposed: qty, expired_on_hand: expired, excess, alert_id: alert ? alert.id : null };
   }
 
+  // ------------------------------------------------------------------ revenue integrity, multi-branch and expiry intelligence
+
+  const localTime = (code) => new Date(DEMO.now()).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: code === "LOS-01" ? "Africa/Lagos" : "Africa/Nairobi" });
+  function answer(path, data, q) {
+    if (Array.isArray(data) && q.get("limit")) return data.slice(0, +q.get("limit"));
+    if (path === "/api/branches/rotation") {
+      const d = clone(data);
+      for (const sl of d.slides) sl.local_time = localTime(sl.code);
+      d.generated_at = DEMO.iso();
+      return d;
+    }
+    return data;
+  }
+  const listOf = (role, path) => S.db[role][path] || S.db[role][(S.paths[role] || {})[path]];
+  const storeById = (id) => S.db.owner["/api/stores"].find((x) => x.id === id);
+  const money = (n) => Math.round(n).toLocaleString("en-US");
+
+  async function owned(u, what, target) {
+    if (ADMIN.includes(u.role)) return;
+    await audit(u.username, "override.refused", target, { attempted: what, role: u.role });
+    addAlert({ rule: "override_attempt", pillar: "ai", severity: "high", title: `${u.full_name} tried to ${what}`,
+      detail: `${target}. Only the owner or OJO Stores Management may do this — attempt refused.`, store_id: u.store_id, subject: u.username,
+      owner_direct: true, audience: ["owner", "ojo_management"], confidence: 1, mode: "day", live_feed_url: null, evidence: { role: u.role, target }, created_at: 1, updated_at: 1 });
+    throw httpError(403, "Only the business owner or OJO Stores Management may use owner override.");
+  }
+  async function overrideDone(u, kind, store_id, target, reason) {
+    await audit(u.username, `override.${kind}`, target, { reason, store_id });
+    emit({ topic: "override", data: { kind, store_id, target, by: u.username, reason } });
+  }
+
+  async function intelRoute(u, role, method, path, q, body) {
+    const owner = S.db.owner;
+    let m;
+    // ---- revenue integrity
+    if (path === "/api/revenue/scan" && method === "POST") { await owned(u, "run a revenue scan", "revenue"); return FX.baseline.owner._scan_results.revenue; }
+    if ((m = /^\/api\/revenue\/transactions\/(\d+)\/(release|reject)$/.exec(path)) && method === "POST") {
+      await owned(u, `${m[2]} a transaction`, `tx:${m[1]}`);
+      const tx = listOf("owner", "/api/revenue/holds").find((t) => t.id === +m[1]);
+      if (!tx) throw httpError(404, "transaction not found");
+      if (!["held", "frozen"].includes(tx.status)) throw httpError(409, `a ${tx.status} transaction is not waiting for ${m[2]}`);
+      const rel = m[2] === "release";
+      tx.status = rel ? "completed" : "rejected";
+      tx.status_note = rel ? `Released by ${u.username}: ${body.reason || "reviewed"}` : `Rejected by ${u.username}: ${body.reason || "owner decision"}`;
+      owner["/api/revenue/overview"].held = owner["/api/revenue/overview"].held.filter((t) => t.id !== tx.id);
+      await overrideDone(u, m[2], tx.store_id, `tx:${tx.id}`, body.reason || "");
+      return tx;
+    }
+    if ((m = /^\/api\/revenue\/stores\/(\d+)\/tills\/([^/]+)\/(lock|unlock)$/.exec(path)) && method === "POST") {
+      const id = +m[1], reg = decodeURIComponent(m[2]), st = storeById(id);
+      await owned(u, `${m[3]} a till`, `${st ? st.code : id}/${reg}`);
+      if (!st) throw httpError(404, "store not found");
+      const tills = owner["/api/revenue/overview"].tills;
+      let t = tills.find((x) => x.store_id === id && x.register === reg);
+      if (!t) { t = { store_id: id, register: reg, locked: false, reason: "", cashier: null, opened_at: null }; tills.push(t); }
+      Object.assign(t, m[3] === "lock" ? { locked: true, reason: body.reason || "" } : { locked: false, reason: "" });
+      listOf("owner", "/api/revenue/till-log").unshift({ at: DEMO.iso(), store_id: id, register: reg, cashier: u.username, kind: "override",
+        reason: `${m[3] === "lock" ? "locked" : "unlocked"}: ${body.reason || ""}`, amount: 0, tx_id: null });
+      await overrideDone(u, `${m[3]}_till`, id, `${st.code}/${reg}`, body.reason || "");
+      return t;
+    }
+    if ((m = /^\/api\/revenue\/operators\/(suspend|restore)$/.exec(path)) && method === "POST") {
+      await owned(u, `${m[1]} a staff member`, body.operator || "");
+      if (!body.operator) throw httpError(422, "operator is required");
+      const ov = owner["/api/revenue/overview"];
+      if (m[1] === "suspend") { if (!ov.suspended.some((x) => x.operator === body.operator)) ov.suspended.push({ operator: body.operator, reason: body.reason || "", by: u.username, since: DEMO.iso() }); }
+      else ov.suspended = ov.suspended.filter((x) => x.operator !== body.operator);
+      await overrideDone(u, m[1], body.store_id || null, body.operator, body.reason || "");
+      return { operator: body.operator, active: m[1] === "suspend" };
+    }
+    // ---- multi-branch
+    if ((m = /^\/api\/branches\/(\d+)\/summary$/.exec(path)) && method === "POST") {
+      need2(u, "owner", "ojo_management");
+      const id = +m[1], st = storeById(id);
+      const tpl = (FX.baseline.owner._summary_templates || {})[id] || listOf("owner", "/api/branches/summary").find((r) => r.store_id === id);
+      if (!st || !tpl) throw httpError(404, "no summary available for that branch");
+      const row = { ...clone(tpl), id: ++S.nextId, created_at: DEMO.iso() };
+      listOf("owner", "/api/branches/summary").unshift(row);
+      const d = row.data, v = d.cash.variance;
+      const note = { id: ++S.nextId, kind: "eod_summary", store_id: id, store: st.code, severity: "info", title: `End of day — ${st.name}`,
+        body: `${st.code}: sales ${money(d.sales.amount)} from ${d.sales.count} transactions; ${d.incidents.total} incident(s); cash ${v > 0 ? "+" : ""}${money(v)}; ${d.issues.length} issue(s)`,
+        data: { day: d.day }, delivery: "dashboard", read: false, created_at: DEMO.iso() };
+      listOf("owner", "/api/notifications").unshift(note);
+      await audit(u.username, "branch.summary", st.code, { report: row.id });
+      emit({ topic: "notification", data: note });
+      return row;
+    }
+    if (path === "/api/notifications/read" && method === "POST") {
+      need2(u, "owner", "ojo_management");
+      const list = listOf("owner", "/api/notifications");
+      const n = list.filter((x) => !x.read).length;
+      list.forEach((x) => { x.read = true; });
+      return { marked: n };
+    }
+    if (path === "/api/transfers" && method === "POST") {
+      need2(u, "owner", "ojo_management", "manager", "storekeeper");
+      const from = storeById(body.from_store_id), to = storeById(body.to_store_id);
+      if (!from || !to) throw httpError(404, "store not found");
+      if (from.id === to.id) throw httpError(422, "a transfer needs two different branches");
+      if (!ADMIN.includes(u.role) && u.store_id !== from.id) throw httpError(403, "not your store");
+      const products = owner["/api/products"] || [];
+      const items = (body.items || []).map((i) => ({ sku: i.sku, quantity: +i.quantity }));
+      if (!items.length || items.some((i) => !(i.quantity > 0))) throw httpError(422, "list the items and quantities being sent");
+      const value = items.reduce((t, i) => t + i.quantity * ((products.find((p) => p.sku === i.sku) || {}).unit_cost || 0), 0);
+      const seq = String(owner["/api/transfers"].filter((t) => t.from === from.code && t.to === to.code).length + 1).padStart(4, "0");
+      const row = { reference: `TRF-${from.code}-${to.code}-${seq}`, status: "in_transit", from: from.code, to: to.code,
+        dispatched_by: u.username, dispatched_at: DEMO.iso(), expected_arrival: new Date(DEMO.now() + (+body.expected_hours || 24) * 3600000).toISOString(),
+        delivered_at: null, received_by: null, condition: body.condition || "good", items, received_items: null, value: Math.round(value * 100) / 100 };
+      for (const r of ["owner", "manager"]) {
+        const list = S.db[r]["/api/transfers"];
+        if (list && (r === "owner" || [from.id, to.id].includes(u.store_id || 1))) list.unshift(clone(row));
+      }
+      await audit(u.username, "transfer.dispatched", row.reference, { from: from.code, to: to.code, items });
+      return row;
+    }
+    if ((m = /^\/api\/transfers\/([^/]+)\/receive$/.exec(path)) && method === "POST") {
+      need2(u, "owner", "ojo_management", "manager", "storekeeper");
+      const ref = decodeURIComponent(m[1]);
+      const row = owner["/api/transfers"].find((t) => t.reference === ref);
+      if (!row) throw httpError(404, "transfer not found");
+      if (row.status !== "in_transit") throw httpError(409, `transfer ${ref} is already ${row.status}`);
+      const dest = S.db.owner["/api/stores"].find((x) => x.code === row.to);
+      if (!ADMIN.includes(u.role) && u.store_id !== dest.id) throw httpError(403, "not your store");
+      const got = body.received || row.items;
+      const sent = row.items.reduce((t, i) => t + i.quantity, 0), came = got.reduce((t, i) => t + i.quantity, 0);
+      const cond = body.condition || "good";
+      for (const r of ["owner", "manager"]) {
+        const t = (S.db[r]["/api/transfers"] || []).find((x) => x.reference === ref);
+        if (t) Object.assign(t, { status: "delivered", delivered_at: DEMO.iso(), received_by: u.username, condition: cond, received_items: clone(got) });
+      }
+      const names = { from: (storeById(S.db.owner["/api/stores"].find((x) => x.code === row.from).id) || {}).name, to: dest.name };
+      const who = `Dispatched by ${row.dispatched_by} at ${names.from}; received by ${u.username} at ${names.to}.`;
+      const evidence = { reference: ref, from: row.from, to: row.to, dispatched_by: row.dispatched_by, received_by: u.username, manifest: clone(row.items), received: clone(got), condition: cond };
+      const raise = (rule, what, detail) => addAlert({ rule, pillar: "inventory", severity: "high", store_id: dest.id, subject: ref,
+        title: `Transfer ${row.from} → ${row.to} ${what}`, detail, owner_direct: true, audience: ["owner", "ojo_management"], confidence: 1, mode: "day",
+        live_feed_url: null, evidence, created_at: 1, updated_at: 1 });
+      if (came < sent) {
+        const lines = row.items.map((i) => { const g = got.find((x) => x.sku === i.sku); return g && g.quantity < i.quantity ? `${i.sku}: ${i.quantity} sent, ${g.quantity} received` : null; }).filter(Boolean);
+        raise("transfer_short", "arrived short", `${lines.join("; ")}. ${who}`);
+      }
+      if (cond !== "good") raise("transfer_damaged", `arrived ${cond}`, `Condition on arrival: ${cond} (dispatched ${row.condition}). ${who}`);
+      await audit(u.username, "transfer.received", ref, { sent, received: came, condition: cond });
+      return clone(owner["/api/transfers"].find((t) => t.reference === ref));
+    }
+    // ---- expiry intelligence
+    if (path === "/api/expiry/write-offs" && q.get("format") === "csv") {
+      const d = listOf(role, path), lines = (d && d.lines) || [];
+      const cols = lines.length ? Object.keys(lines[0]) : ["note"];
+      const cell = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+      return { __csv: [cols.join(","), ...(lines.length ? lines.map((r) => cols.map((c) => cell(r[c])).join(",")) : ['"no write-offs in this period"'])].join("\n") };
+    }
+    if (path === "/api/expiry/scan" && method === "POST") { need2(u, "owner", "ojo_management"); return FX.baseline.owner._scan_results.expiry; }
+    if (path === "/api/expiry/recalls" && method === "POST") return await issueRecall(u, body);
+    if ((m = /^\/api\/expiry\/batches\/(\d+)\/release$/.exec(path)) && method === "POST") return await releaseBatch(u, +m[1], body.note || "");
+    return undefined;
+  }
+  function need2(u, ...roles) { if (!roles.includes(u.role)) throw httpError(403, `role '${u.role}' not permitted`); }
+
+  async function issueRecall(u, b) {
+    need2(u, "owner", "ojo_management");
+    const batch = String(b.batch_no || "").trim();
+    if (!batch) throw httpError(422, "enter the batch number");
+    const recalls = owner0()["/api/expiry/recalls"];
+    const sc = FX.scenarios.recall;
+    const known = sc && ((sc.patch.owner || {})["/api/expiry/recalls"] || { upsert: [] }).upsert.find((r) => r.batch_no.toLowerCase() === batch.toLowerCase());
+    if (known && !recalls.some((r) => r.batch_no.toLowerCase() === batch.toLowerCase())) {
+      await window.DEMO_TRIGGER("recall");  // the captured run of exactly this recall
+      await audit(u.username, "expiry.recall", batch, { reason: b.reason, issued_by: b.issued_by });
+      return recalls.find((r) => r.batch_no.toLowerCase() === batch.toLowerCase());
+    }
+    const hit = S.db.owner["/api/expiry"].batches.filter((r) => r.batch_no.toLowerCase() === batch.toLowerCase() && (!b.sku || r.sku === b.sku));
+    const found = hit.reduce((t, r) => t + r.quantity, 0);
+    const row = { id: ++S.nextId, batch_no: batch, sku: b.sku || "", reason: b.reason || "", issued_by: b.issued_by || "", status: "open",
+      units_found: found, units_sold_before: 0, units_remaining: found, stores: [...new Set(hit.map((r) => r.store))], created_at: DEMO.iso(), cleared_at: null };
+    recalls.unshift(row);
+    if (hit.length) {
+      const first = hit[0];
+      addAlert({ rule: "batch_recall", pillar: "inventory", severity: "critical", store_id: first.store_id, subject: batch,
+        title: `RECALL: ${found} × ${first.product}, batch ${batch}, at ${first.store}: remove now`,
+        detail: `${b.issued_by || "Recall"}: ${b.reason || "recalled batch"}. The till refuses this batch at the point of sale.`,
+        owner_direct: true, audience: ["owner", "ojo_management", "manager", "storekeeper"], confidence: 1, mode: "day", live_feed_url: null,
+        evidence: { batch_no: batch, units: found }, created_at: 1, updated_at: 1 });
+    }
+    for (const role of ["owner", "manager"]) {
+      const v = S.db[role]["/api/expiry"];
+      for (const r of v.batches) if (r.batch_no.toLowerCase() === batch.toLowerCase() && (!b.sku || r.sku === b.sku)) Object.assign(r, { status: "recalled", batch_status: "recalled" });
+      expiryTotals(v);
+    }
+    await audit(u.username, "expiry.recall", batch, { reason: b.reason, issued_by: b.issued_by });
+    return row;
+  }
+  const owner0 = () => S.db.owner;
+  async function releaseBatch(u, id, note) {
+    need2(u, "owner", "ojo_management", "manager", "storekeeper");
+    const b = S.db.owner["/api/expiry"].batches.find((r) => r.id === id);
+    if (!b) throw httpError(404, "batch not found");
+    if (!ADMIN.includes(u.role) && u.store_id !== b.store_id) throw httpError(403, "not your store");
+    if (b.batch_status !== "held") throw httpError(409, "that batch is not on hold");
+    const state = b.days_left < 0 ? "expired" : b.days_left <= 30 ? "expiring" : "ok";
+    for (const role of ["owner", "manager"]) {
+      const v = S.db[role]["/api/expiry"];
+      const r = v.batches.find((x) => x.id === id);
+      if (r) { Object.assign(r, { status: state, batch_status: "active" }); expiryTotals(v); }
+      for (const t of S.db[role]["/api/expiry/temperature"] || []) if (t.store_id === b.store_id) t.held_units = Math.max(0, (t.held_units || 0) - b.quantity);
+    }
+    resolveWhere((a) => a.rule === "temperature_excursion" && a.store_id === b.store_id, `Inspected and released: ${note}`);
+    await audit(u.username, "expiry.batch_released", b.batch_no, { note });
+    return { id, batch_no: b.batch_no, status: state };
+  }
+
   const realFetch = window.fetch.bind(window);
   window.fetch = async (url, opts = {}) => {
     const path = new URL(url, location.href).pathname;
@@ -743,6 +991,7 @@
     await new Promise((r) => setTimeout(r, 60 + Math.random() * 80)); // feel like a network
     try {
       const data = await handle((opts.method || "GET").toUpperCase(), url, body, token);
+      if (data && data.__csv !== undefined) return new Response(data.__csv, { status: 200, headers: { "Content-Type": "text/csv" } });
       return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (e) {
       if (!e.status) console.error(e);

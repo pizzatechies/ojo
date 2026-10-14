@@ -2,7 +2,7 @@
 
 **We See Everything They Ignore.**
 
-This repository hosts the public website for **OJO Sentinel**, the AI-powered business-intelligence and security platform from OJO Stores Management, plus an interactive demo of the owner's command centre. The site and demo cover security and the Financial & Tax Intelligence module: KRA iTax/eTIMS, VAT, PAYE, SHIF, NSSF, Housing Levy, licences and accounting.
+This repository hosts the public website for **OJO Sentinel**, the AI-powered business-intelligence and security platform from OJO Stores Management, plus an interactive demo of the owner's command centre. The site and demo cover security; the Financial & Tax Intelligence module (KRA iTax/eTIMS, VAT, PAYE, SHIF, NSSF, Housing Levy, licences and accounting); Autonomous Intelligence; and the three newest modules: **Revenue Integrity** (shadow sales, M-Pesa, bank and cash reconciliation, refund and void intelligence, fraud scores, owner override), **Multi-Branch Intelligence** (live branch health, rotating feed, side-by-side comparison, cross-branch correlation, push notifications, transfers, end-of-day summaries) and **Expiry Intelligence** (30/14/7/1-day warnings, till block, recalls, shelf CCTV, temperature holds, markdown, balancing and order advice, KEBS/KEFDAC file).
 
 | Path | What it is |
 |---|---|
@@ -26,6 +26,8 @@ The demo is the platform's own dashboard code with a small in-browser stand-in f
 - Managers cannot close owner-direct alerts or lift lockdowns.
 - Attempts to do so are reported to the owner.
 - Tamper and fraud alerts are hidden from managers.
+
+The Revenue, Branches and Expiry tabs are the platform's own `intel.js`, built in as it is apart from reading dates against the demo's clock. In the demo they show every branch at once (the branch picker is for a live deployment), and the owner's actions work: release or reject a held sale, lock a till, suspend a cashier, dispatch and receive a transfer, issue a recall, release a held batch, write an end-of-day summary. The platform's live-test console is not part of the demo; it only exists on a server started for live testing.
 
 Every alert, count and figure was produced by the real engines in the [`pizzatechies/sentinels`](https://github.com/pizzatechies/sentinels) repository. Nothing is connected to a real business.
 

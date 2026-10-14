@@ -31,7 +31,7 @@ from ojo_sentinel.models import Store, Product, Alert
 from ojo_sentinel import alerts as alert_engine
 from ojo_sentinel.engines import geo
 
-app = create_app(Settings(database_url="sqlite://", seed_demo=True, finance_scan_minutes=0, autonomy_scan_minutes=0))
+app = create_app(Settings(database_url="sqlite://", seed_demo=True, finance_scan_minutes=0, autonomy_scan_minutes=0, intel_scan_minutes=0))
 db = app.state.db
 # Behave like a deployment with a voice/SMS gateway, so calls read "sent" (nothing listens on this port).
 from ojo_sentinel.config import settings as _settings  # noqa: E402
@@ -50,7 +50,74 @@ def stores():
     with db.session() as s:
         return {st.code: st for st in s.scalars(select(Store))}
 
+CUSTOM = {}
+def custom(fn):
+    CUSTOM[fn.__name__] = fn
+    return fn
+
+def _ago(**kw):
+    return (FakeDT.now(timezone.utc) - timedelta(**kw)).isoformat()
+
+def _pos(st, **f):
+    body = {"store_id": st.id, "kind": "sale", "cashier": "Cashier", "register_id": "R1", "method": "cash", "amount": 1000, **f}
+    r = c.post("/api/transactions", headers=OWNER, json=body)
+    assert r.status_code in (200, 201, 202), r.text
+    return r.json()
+
+def _cashier(st):
+    with db.session() as s:
+        e = s.scalars(select(models.Employee).where(models.Employee.store_id == st.id, models.Employee.job_title == "Cashier")).first()
+        return e.code, e.full_name
+
+@custom
+def recall(code, st):
+    r = c.post("/api/expiry/recalls", headers=OWNER, json={"batch_no": "MK-2610-A21", "issued_by": "KEBS",
+               "reason": "Dairy co-op contamination notice: do not sell"}); assert r.status_code == 201, r.text
+
+@custom
+def personal_qr(code, st):
+    ecode, name = _cashier(st)
+    r = c.post("/api/detections", headers=OWNER, json={"store_id": st.id, "kind": "payment_device", "employee_code": ecode,
+               "payload": {"register_id": "R1", "device": "personal QR code on a phone", "cashier": name}}); assert r.status_code == 200, r.text
+
+@custom
+def shadow_inventory(code, st):
+    ecode, name = _cashier(st)
+    r = c.post("/api/detections", headers=OWNER, json={"store_id": st.id, "kind": "staff_carrying", "employee_code": ecode,
+               "zone_code": "entrance", "payload": {"description": "two cartons and a duffel bag"}}); assert r.status_code == 200, r.text
+    _pos(st, cashier=name, amount=2200, items=[{"barcode": "7710000099", "quantity": 2, "price": 1100, "name": "Personal stock"}])
+
+@custom
+def ghost_sale(code, st):
+    _, name = _cashier(st)
+    for ago in ({"hours": 3}, {"minutes": 30}):  # this till's camera is watching and reporting customers
+        c.post("/api/detections", headers=OWNER, json={"store_id": st.id, "kind": "till_customer",
+               "payload": {"register_id": "R9"}, "occurred_at": _ago(**ago)})
+    _pos(st, cashier=name, amount=2350.37, register_id="R9", occurred_at=_ago(minutes=20))
+
+@custom
+def receipt_fraud(code, st):
+    _, name = _cashier(st)
+    r = c.post("/api/revenue/receipts", headers=OWNER, json={"store_id": st.id, "receipt_no": "RCPT-88-X", "amount": 1800,
+               "cashier": name, "issued_at": _ago(minutes=15)}); assert r.status_code == 201, r.text
+
+@custom
+def transfer_short(code, st):
+    dest = stores()["LOS-01"]
+    r = c.post("/api/transfers", headers=OWNER, json={"from_store_id": st.id, "to_store_id": dest.id,
+               "items": [{"sku": "YOGH-500", "quantity": 20}], "expected_hours": 12}); assert r.status_code == 201, r.text
+    ref = r.json()["reference"]
+    r = c.post(f"/api/transfers/{ref}/receive", headers=OWNER, json={"received": [{"sku": "YOGH-500", "quantity": 16}],
+               "condition": "damaged", "note": "four crates crushed in transit"}); assert r.status_code == 200, r.text
+
+@custom
+def branch_pattern(code, st):
+    for other in ("NBO-01", "MBA-01"):
+        incident(other, "cash_short")
+
 def incident(code, kind):
+    if kind in CUSTOM:  # these go through the HTTP API, like a real till or camera
+        return CUSTOM[kind](code, stores()[code])
     with db.session() as s:
         st = s.scalars(select(Store).where(Store.code == code)).one()
         products = s.scalars(select(Product)).all()
@@ -103,6 +170,42 @@ with db.session() as s:
         latest[r.store_id] = r.id
 REPORT_EP = [f"/api/autonomy/shift-reports/{i}" for i in latest.values()]
 
+# ---- the three intelligence modules: some history so their tabs open mid-story
+from ojo_sentinel import revenue as rev_mod, branches as br_mod, expiryintel as exp_mod  # noqa: E402
+
+def intel_scan(mods=(rev_mod, br_mod, exp_mod)):
+    """What the one-minute background scanner does on a live server."""
+    with db.session() as s:
+        for mod in mods:
+            # Payments and sales are judged once they are older than the matching grace (5 minutes): look a few minutes on.
+            mod.run_scan(s, FakeDT.now(timezone.utc) + timedelta(minutes=6)) if mod is rev_mod else mod.run_scan(s)
+
+incident("MBA-01", "unregistered_sale")   # a held sale waiting on the owner
+incident("KLA-01", "mpesa_orphan")         # money received with no sale behind it
+with db.session() as s:
+    _stores = {st.code: st.id for st in s.scalars(select(Store))}
+r = c.post("/api/transfers", headers=OWNER, json={"from_store_id": _stores["NBO-01"], "to_store_id": _stores["MBA-01"],
+                                                   "items": [{"sku": "MILK-500", "quantity": 15}], "expected_hours": 6})
+assert r.status_code == 201, r.text
+for code, temp in (("NBO-01", 4.6), ("MBA-01", 5.2), ("KLA-01", 3.9), ("LOS-01", 6.1)):  # every chiller reporting, in range
+    r = c.post("/api/expiry/temperature", headers=OWNER, json={"store_id": _stores[code], "zone": "chiller", "temp_c": temp, "sensor": "chiller-probe-1"})
+    assert r.status_code == 201, r.text
+r = c.post("/api/expiry/dispose", headers=OWNER, json={"store_id": _stores["NBO-01"], "sku": "FLOUR-2", "quantity": 10,
+           "note": "expired: pulled from the shelf"}); assert r.status_code == 201, r.text  # a write-off on the books
+for code in ("NBO-01", "MBA-01"):  # end-of-day summaries already written for two branches
+    r = c.post(f"/api/branches/{_stores[code]}/summary", headers=OWNER); assert r.status_code == 201, r.text
+intel_scan()
+# templates for the summaries the owner can ask for from the dashboard; written, copied, then taken back out
+_raw = db.engine.raw_connection()
+_pre = sqlite3.connect(":memory:")
+_raw.driver_connection.backup(_pre)
+SUMMARY_TEMPLATES = {}
+for code in ("LOS-01", "KLA-01"):
+    r = c.post(f"/api/branches/{_stores[code]}/summary", headers=OWNER); assert r.status_code == 201, r.text
+    SUMMARY_TEMPLATES[_stores[code]] = r.json()
+_pre.backup(_raw.driver_connection)
+TODAY = frates.kenya_today()
+
 OWNER_EP = ["/api/dashboard", "/api/stores", "/api/alerts?limit=500", "/api/inventory/counts?flagged=true&limit=30",
             "/api/shipments", "/api/attendance", "/api/employees", "/api/assets", "/api/phones", "/api/modes",
             "/api/cameras", "/api/detections?limit=40", "/api/honeypot/tokens", "/api/honeypot/hits",
@@ -111,11 +214,25 @@ OWNER_EP = ["/api/dashboard", "/api/stores", "/api/alerts?limit=500", "/api/inve
             "/api/products", "/api/finance/overview", "/api/finance/vat-return", "/api/finance/payroll",
             "/api/finance/accounting/branches", "/api/finance/accounting/margins", "/api/finance/accounting/ap-ar",
             "/api/finance/accounting/expenses", "/api/autonomy/overview", "/api/autonomy/report-vs-reality",
-            "/api/autonomy/shrinkage", "/api/expiry", "/api/subscription", "/api/currency"]
+            "/api/autonomy/shrinkage", "/api/expiry", "/api/subscription", "/api/currency",
+            # revenue integrity
+            "/api/revenue/overview", "/api/revenue/holds", "/api/revenue/payments?limit=15", "/api/revenue/till-log?limit=25",
+            "/api/revenue/supply-breaches", "/api/revenue/carried-in",
+            # multi-branch intelligence
+            "/api/branches/pulse", "/api/branches/rotation", "/api/branches/comparison", "/api/branches/alerts?limit=15",
+            "/api/notifications?limit=15", "/api/branches/correlations", "/api/transfers", "/api/branches/summary?limit=8",
+            # expiry intelligence
+            "/api/expiry/dashboard", "/api/expiry/briefing", "/api/expiry/discounts", "/api/expiry/balancing",
+            "/api/expiry/forecast", "/api/expiry/orders", "/api/expiry/recalls", "/api/expiry/shelves",
+            "/api/expiry/temperature", f"/api/expiry/write-offs?year={TODAY.year}&month={TODAY.month}",
+            "/api/expiry/suppliers", "/api/expiry/compliance?days=30"]
 MGR_EP = ["/api/dashboard", "/api/stores", "/api/inventory/counts?flagged=true&limit=30", "/api/shipments",
           "/api/attendance", "/api/employees", "/api/cameras", "/api/detections?limit=40", "/api/modes",
           "/api/money/summary", "/api/map", "/api/products", "/api/autonomy/overview",
-          "/api/autonomy/report-vs-reality", "/api/expiry", "/api/subscription", "/api/currency"]
+          "/api/autonomy/report-vs-reality", "/api/expiry", "/api/subscription", "/api/currency",
+          "/api/transfers", "/api/expiry/dashboard", "/api/expiry/briefing", "/api/expiry/discounts",
+          "/api/expiry/balancing", "/api/expiry/forecast", "/api/expiry/orders", "/api/expiry/recalls",
+          "/api/expiry/shelves", "/api/expiry/temperature", f"/api/expiry/write-offs?year={TODAY.year}&month={TODAY.month}"]
 
 def snapshot():
     st = stores()
@@ -127,8 +244,12 @@ def snapshot():
     return out
 
 # keep the captured logins list free of the capture's own sign-ins noise? it's realistic; keep.
+SCAN_EP = {"revenue": "/api/revenue/scan", "branches": "/api/branches/scan", "expiry": "/api/expiry/scan"}
+scan_results = {k: c.post(ep, headers=OWNER).json() for k, ep in SCAN_EP.items()}
 baseline = snapshot()
 baseline["owner"]["/api/ai/scan"] = c.post("/api/ai/scan", headers=OWNER).json()
+baseline["owner"]["_scan_results"] = scan_results
+baseline["owner"]["_summary_templates"] = SUMMARY_TEMPLATES
 with db.session() as s:
     nbo_st = s.scalars(select(Store).where(Store.code == "NBO-01")).one()
     today = frates.kenya_today()
@@ -154,6 +275,14 @@ SCENARIOS = [
     ("silent_witness", "NBO-01"), ("dead_zone", "NBO-01"), ("asset_breach", "NBO-01"), ("cross_location", "NBO-01"),
     ("expiry_disposal_fraud", "NBO-01"), ("short_delivery", "NBO-01"), ("power_cut", "KLA-01"),
     ("link_down", "NBO-01"), ("device_hot", "NBO-01"),
+    # revenue integrity
+    ("unregistered_sale", "NBO-01"), ("void_after_tender", "NBO-01"), ("mpesa_diverted", "NBO-01"),
+    ("mpesa_orphan", "MBA-01"), ("personal_qr", "NBO-01"), ("shadow_inventory", "NBO-01"), ("ghost_sale", "NBO-01"),
+    ("receipt_fraud", "NBO-01"),
+    # multi-branch
+    ("branch_pattern", "NBO-01"), ("transfer_short", "NBO-01"),
+    # expiry intelligence
+    ("chiller_fault", "NBO-01"), ("recall", "NBO-01"),
 ]
 
 def key_of(ep, row):
@@ -164,17 +293,44 @@ def key_of(ep, row):
     if "ai/risk" in ep: return row.get("subject")
     if "ai/learning" in ep: return row.get("rule")
     if "report-vs-reality" in ep: return f"{row['kind']}|{row['store']}|{row['at']}|{row['item']}"
-    return row.get("id")
+    if ep.startswith("/api/branches/pulse"): return row.get("store_id")
+    return row["id"] if "id" in row else row.get("reference")
 
-def diff(before, after):
+# The clock keeps running during capture, so ignore fields that only say when the answer was worked out,
+# or that a repeat scan bumps on an alert it has already raised.
+VOLATILE = {"generated_at", "local_time", "updated_at", "occurrences", "until", "since", "period", "entries_checked"}
+def norm(x):
+    if isinstance(x, dict): return {k: norm(v) for k, v in x.items() if k not in VOLATILE}
+    if isinstance(x, list): return [norm(v) for v in x]
+    return x
+
+# Answers the page works out for itself, and the analytics whose numbers drift with the clock: only the scenarios
+# that are really about that subject carry them.
+PAGE_SIDE = {"/api/dashboard", "/api/modes", "/api/map", "/api/ai/learning", "/api/ai/risk"}
+EXPIRY_KINDS = {"expiry_disposal_fraud", "short_delivery", "chiller_fault", "recall", "transfer_short"}
+REVENUE_KINDS = {"unregistered_sale", "void_after_tender", "mpesa_diverted", "mpesa_orphan", "personal_qr", "shadow_inventory",
+                 "ghost_sale", "receipt_fraud", "refund_spree", "cash_short", "branch_pattern"}
+def carries(kind, ep):
+    base = ep.split("?")[0]
+    if base in PAGE_SIDE: return False
+    if base == "/api/expiry" or (base.startswith("/api/expiry/")): return kind in EXPIRY_KINDS
+    if base.startswith("/api/revenue/"): return kind in REVENUE_KINDS
+    return True
+
+def diff(before, after, kind=None):
     patch = {}
     for role in after:
         for ep, now in after[role].items():
+            if kind is not None and not carries(kind, ep): continue
             was = before[role].get(ep)
-            if now == was: continue
+            if norm(now) == norm(was): continue
             if isinstance(now, list):
+                keys = [key_of(ep, r) for r in now]
+                if any(k is None for k in keys):  # rows with no identity (a log, a ranking): take the whole list
+                    patch.setdefault(role, {})[ep] = {"replace": now}
+                    continue
                 old = {key_of(ep, r): r for r in was}
-                rows = [r for r in now if key_of(ep, r) not in old or old[key_of(ep, r)] != r]
+                rows = [r for r in now if key_of(ep, r) not in old or norm(old[key_of(ep, r)]) != norm(r)]
                 patch.setdefault(role, {})[ep] = {"upsert": rows}
             else:
                 patch.setdefault(role, {})[ep] = {"replace": now}
@@ -188,8 +344,9 @@ for kind, code in SCENARIOS:
         st = s.scalars(select(Store).where(Store.code == code)).one()
         from ojo_sentinel.engines import behaviour
         behaviour.detect_coordinated(s, st)
+    intel_scan([br_mod] + ([rev_mod] if kind in REVENUE_KINDS else []) + ([exp_mod] if kind in EXPIRY_KINDS else []))
     after = json.loads(json.dumps(snapshot()))
-    scenarios[kind] = {"store": code, "patch": diff(baseline, after)}
+    scenarios[kind] = {"store": code, "patch": diff(baseline, after, kind)}
     n = len(scenarios[kind]["patch"].get("owner", {}).get("/api/alerts?limit=500", {}).get("upsert", []))
     print(f"{kind:16s} {code}  alerts+{n}  endpoints={sorted(scenarios[kind]['patch'].get('owner', {}))}", file=sys.stderr)
 
