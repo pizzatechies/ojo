@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Can't reach the server</title>
+<style>
+  :root { --night: #0b0d10; --panel: #14171c; --line: #2a2f38; --text: #eef0f3; --muted: #9aa3ae; --gold: #d4a017; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--night); color: var(--text); }
+  body { font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: max(24px, env(safe-area-inset-top)) 16px 32px; }
+  main { max-width: 480px; margin: 0 auto; display: grid; gap: 16px; }
+  h1 { font-size: 24px; margin: 8px 0 0; }
+  p, li { color: var(--muted); margin: 0; }
+  ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 10px; }
+  .addr { color: var(--text); font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
+  .why { font-size: 13px; }
+  a.btn, button { appearance: none; border: 0; border-radius: 12px; padding: 14px 16px; font: 600 16px/1 inherit; font-family: inherit;
+                  display: block; width: 100%; text-align: center; text-decoration: none; cursor: pointer; }
+  .primary { background: var(--gold); color: #111; }
+  .secondary { background: #1b1f26; color: var(--text); border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Can't reach the server</h1>
+  <div class="card">
+    <p class="addr" id="addr"></p>
+    <p class="why" id="why"></p>
+  </div>
+  <div class="card">
+    <p><b style="color:var(--text)">Check these:</b></p>
+    <ul>
+      <li>The server is running (for a live test, the window that ran <i>start</i> is still open).</li>
+      <li>This phone is on the same Wi-Fi as the computer running it. Guest and office Wi-Fi often block this; try a phone hotspot.</li>
+      <li>The address is right, including the port number (for example <span class="addr">:8000</span>).</li>
+      <li>The computer's firewall allows connections to that port.</li>
+    </ul>
+  </div>
+  <button class="primary" id="retry" type="button">Try again</button>
+  <a class="btn secondary" href="index.html">Back to start</a>
+</main>
+<script>
+  const q = new URLSearchParams(location.search);
+  const url = q.get("url") || "";
+  document.getElementById("addr").textContent = url;
+  document.getElementById("why").textContent = (q.get("why") || "").replace(/^net::/, "");
+  document.getElementById("retry").addEventListener("click", () => { if (/^https?:\/\//i.test(url)) location.href = url; });
+</script>
+</body>
+</html>

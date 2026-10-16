@@ -38,6 +38,8 @@
   .error { color: var(--bad); font-size: 14px; min-height: 1em; margin: 0; }
   .recent { display: flex; flex-wrap: wrap; gap: 8px; }
   .recent button { width: auto; padding: 8px 12px; font-size: 13px; font-weight: 500; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+  .addr { color: var(--text) !important; font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
+  [hidden] { display: none !important; }
   footer { color: var(--muted); font-size: 12.5px; text-align: center; margin-top: 4px; }
 </style>
 </head>
@@ -48,6 +50,15 @@
     <h1>We see everything <em>they ignore.</em></h1>
     <p class="lede" style="margin-top:10px">Your stores, stock, cash, people, deliveries and tax in one command centre, in your pocket.</p>
   </div>
+
+  <section class="card" id="link-card" aria-labelledby="link-title" hidden>
+    <span class="tag">FROM A LINK</span>
+    <h2 id="link-title">Connect to this server?</h2>
+    <p id="link-url" class="addr"></p>
+    <p>You were sent here by a link or a QR code. Continue only if you started it yourself, for example from your own test server's connect page.</p>
+    <button class="primary" id="link-go" type="button">Connect</button>
+    <button class="secondary" id="link-cancel" type="button">Not now</button>
+  </section>
 
   <section class="card" aria-labelledby="demo-title">
     <span class="tag">WORKS OFFLINE</span>
@@ -68,9 +79,10 @@
       <p id="error" class="error" role="alert"></p>
     </form>
     <div id="recent" class="recent" hidden></div>
+    <p><b>Running a live test?</b> Scan the QR code on the test server's screen with the phone camera, then tap <i>Open in the OJO Sentinel app</i>. Or type its address here, for example <span class="addr">192.168.1.20:8000</span> (a server on your own Wi-Fi uses <span class="addr">http</span>, which is fine there).</p>
   </section>
 
-  <footer>Staff tracking and face recognition only run where your business has set them up, with staff consent.</footer>
+  <footer>Staff tracking and face recognition only run where your business has set them up, with staff consent.<br>Version 1.1</footer>
 </main>
 <script>
 (() => {
@@ -82,7 +94,11 @@
   function normalise(raw) {
     let v = raw.trim();
     if (!v) throw new Error("Enter your server's address.");
-    if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+    if (!/^https?:\/\//i.test(v)) {
+      // a bare address on your own network (192.168..., 10..., name.local, localhost) has no certificate: use http there
+      const local = /^(localhost|127(\.\d+){3}|10(\.\d+){3}|192\.168(\.\d+){2}|172\.(1[6-9]|2\d|3[01])(\.\d+){2}|[^/:]+\.local)(?=[:/]|$)/i.test(v);
+      v = (local ? "http://" : "https://") + v;
+    }
     const u = new URL(v);
     if (!u.hostname.includes(".") && u.hostname !== "localhost" && !/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname)) throw new Error("That doesn't look like a server address.");
     return u.origin + u.pathname.replace(/\/+$/, "") + "/";
@@ -109,6 +125,20 @@
     error.textContent = "";
     try { go(normalise(input.value)); } catch (err) { error.textContent = err.message.startsWith("Failed") ? "That doesn't look like a server address." : err.message; }
   });
+  // opened from ojosentinel://connect?server=...: ask before going there
+  const link = new URLSearchParams(location.search).get("server");
+  if (link) {
+    try {
+      const target = normalise(link);
+      const card = document.getElementById("link-card");
+      document.getElementById("link-url").textContent = target.replace(/\/$/, "");
+      card.hidden = false;
+      document.getElementById("link-go").addEventListener("click", () => go(target));
+      document.getElementById("link-cancel").addEventListener("click", () => { card.hidden = true; });
+    } catch (_) {
+      error.textContent = "That link doesn't contain a usable server address.";
+    }
+  }
   renderRecent();
 })();
 </script>

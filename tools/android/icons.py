@@ -1,4 +1,4 @@
-"""Draw the OJO Sentinel launcher icon (gold eye on night background) at every density."""
+"""Draw the OJO Sentinel launcher icon (gold eye on night background) at every density, and the white status-bar icon."""
 import sys
 from pathlib import Path
 
@@ -18,3 +18,16 @@ for density, px in SIZES.items():
     folder = out / f"mipmap-{density}"
     folder.mkdir(parents=True, exist_ok=True)
     im.resize((px, px), Image.LANCZOS).save(folder / "ic_launcher.png")
+
+# Status-bar icon for notifications: Android keeps only the shape (alpha), so draw a plain white eye on transparency.
+for density, px in {"mdpi": 24, "hdpi": 36, "xhdpi": 48, "xxhdpi": 72, "xxxhdpi": 96}.items():
+    s = px * 8
+    im = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    r = s * 0.42
+    d.ellipse([s / 2 - r, s / 2 - r, s / 2 + r, s / 2 + r], fill=(255, 255, 255, 255))
+    p = s * 0.17
+    d.ellipse([s / 2 - p, s / 2 - p, s / 2 + p, s / 2 + p], fill=(0, 0, 0, 0))
+    folder = out / f"drawable-{density}"
+    folder.mkdir(parents=True, exist_ok=True)
+    im.resize((px, px), Image.LANCZOS).save(folder / "ic_stat.png")

@@ -3,6 +3,9 @@
 #
 # Needs: a JDK, Python 3 with Pillow, and the Android build tools. On Ubuntu/Debian:
 #   apt-get install android-sdk-platform-23 aapt dalvik-exchange zipalign apksigner
+# The code calls newer Android APIs (notifications, the Downloads folder) behind version checks, so the Java is
+# compiled against a newer android.jar: set COMPILE_JAR to the one from API 33 or later (Android Studio's SDK:
+# $ANDROID_HOME/platforms/android-34/android.jar). The API 23 jar is still used for the resources and the core Java classes.
 #
 # Signing: set KEYSTORE (and KEYSTORE_PASS, KEY_ALIAS) to your release key. Keep that key safe:
 # every update must be signed with the same key. Without it a throwaway key is generated.
@@ -10,6 +13,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 ANDROID_JAR=${ANDROID_JAR:-/usr/lib/android-sdk/platforms/android-23/android.jar}
+COMPILE_JAR=${COMPILE_JAR:-$ANDROID_JAR}
 DX=${DX:-/usr/lib/android-sdk/build-tools/debian/dx}
 DEMO_HTML=${DEMO_HTML:-../../demo/index.html}
 OUT=${OUT:-build/ojo-sentinel.apk}
@@ -25,7 +29,7 @@ grep -q 'Back to start' build/assets/demo/index.html || { echo "demo link not re
 cp ../../favicon.svg build/assets/favicon.svg
 
 aapt package -f -m -J build/gen -M AndroidManifest.xml -S res -S build/res --auto-add-overlay -I "$ANDROID_JAR"
-javac -nowarn -Xlint:-options -source 8 -target 8 -bootclasspath "$ANDROID_JAR" -d build/classes \
+javac -nowarn -Xlint:-options -source 8 -target 8 -bootclasspath "$COMPILE_JAR:$ANDROID_JAR" -d build/classes \
   build/gen/$PKG_DIR/R.java src/$PKG_DIR/*.java
 "$DX" --dex --output=build/classes.dex build/classes
 aapt package -f -M AndroidManifest.xml -S res -S build/res --auto-add-overlay -A build/assets -I "$ANDROID_JAR" \
